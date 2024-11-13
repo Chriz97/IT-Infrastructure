@@ -1,0 +1,64 @@
+# Firewalld Configuration Script
+# All commands were tested on Fedora 41: KDE Spin. (10/29/2024)
+# This script provides basic and advanced Firewalld commands for setup and configuration.
+# Note: Commands marked with '--permanent' require a Firewalld reload to apply changes.
+
+# Installation of Firewalld (RHEL Based Distributions)
+sudo dnf install firewalld
+
+# Start and Enable the Firewalld Service at Startup
+sudo systemctl start firewalld
+sudo systemctl enable firewalld
+
+# Check and Verify the Status of the Firewalld Service
+sudo systemctl status firewalld
+  The Output should yield the following:      Loaded: loaded (/usr/lib/systemd/system/firewalld.service; enabled; preset: enabled)
+
+# Basic Firewalld Commands:
+
+# Check the Status of Firewalld
+sudo firewall-cmd --state
+
+# List all Firewalld Rules
+sudo firewall-cmd --list-all
+
+# Reload Firewalld (To apply changes)
+sudo firewall-cmd --reload
+
+# List all Available Zones
+sudo firewall-cmd --get-zones
+
+# View the Configuration of a Specific Zone
+sudo firewall-cmd --zone=public --list-all
+
+# Get the Default Zone
+sudo firewall-cmd --get-default-zone
+
+# Set a New Zone (Trusted in this example)
+sudo firewall-cmd --set-default-zone=trusted (Options are: Public, Home, Trusted, DMZ, Internal)
+
+# Remove a Service from a Zone (HTTP in this example, using the Public Zone)
+sudo firewall-cmd --zone=public --remove-service=http --permanent # Make sure the reload to apply the changes
+
+# Open a Specific Port (8080 in this example)
+sudo firewall-cmd --zone=public --add-port=8080/tcp --permanent
+
+# Close a Specific Port (8080 in this example)
+sudo firewall-cmd --zone=public --remove-port=8080/tcp --permanent
+
+# Rick Rules (For advanced configuration, for example to allow SSH from a specific IPV4 address)
+sudo firewall-cmd --permanent --zone=public --add-rich-rule='rule family="ipv4" source address="192.168.1.100" service name="ssh" accept'
+
+# Setting Up Interface to a Zone (ETH0 in this example)
+sudo firewall-cmd --zone=home --change-interface=eth0 --permanent
+
+# Enable Logging of Dropped Packages
+sudo firewall-cmd --set-log-denied=all (Turn Logging off: sudo firewall-cmd --set-log-denied=off)
+
+
+
+
+
+
+
+
