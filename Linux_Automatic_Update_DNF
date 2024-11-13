@@ -1,0 +1,59 @@
+# dnf-automatic Installation and Configuration Script for RHEL-Based Systems (e.g., Fedora, CentOS, RHEL)
+# Note: This script sets up dnf-automatic to manage updates on RHEL-based systems by automating
+# the download, installation, and notification of available software updates.
+
+
+# Step 1: Install dnf-automatic
+# dnf-automatic is an optional package that automates the download, installation, and/or notification of updates.
+sudo dnf install dnf-automatic
+
+
+# Step 2: Verify dnf-automatic Installation
+rpm -qi dnf-automatic
+
+# Step 3: Enable the Desired dnf-automatic Timer
+# dnf-automatic comes with several timer units that control how updates are handled:
+# - dnf-automatic-download.timer: Downloads available updates without installing them.
+# - dnf-automatic-install.timer: Downloads and installs available updates automatically.
+# - dnf-automatic-notifyonly.timer: Sends notifications about available updates without downloading them.
+# - dnf-automatic.timer: A configurable timer that can download, install, or notify based on the settings in /etc/dnf/automatic.conf.
+#
+# To start a specific timer, use the appropriate timer name in place of <timer_name> in the command below.
+sudo systemctl enable --now dnf-automatic-install.timer
+
+# Step 5: List All Available dnf-automatic Timers
+sudo systemctl list-timers --all
+
+# Step 6: Configure dnf-automatic (optional)
+# The configuration file for dnf-automatic is located at /etc/dnf/automatic.conf.
+# You can edit this file to customize the behavior of dnf-automatic, including:
+# - Whether to apply updates automatically or just download them.
+# - Notification settings, such as enabling email notifications.
+# - Log file settings to track automatic updates.
+sudo nano /etc/dnf/automatic.conf  # Or any other text editior like VIM.
+
+# Sample dnf-automatic.conf Configuration Changes
+
+# Uncomment and modify the following options in /etc/dnf/automatic.conf for custom behavior:
+#
+# [commands]
+# apply_updates = yes  # Enables automatic installation of updates. Set to 'no' if you only want downloads.
+#
+# [emitters]
+# system_name = myserver  # Customizes the server name in notifications.
+# email_to = admin@example.com  # Sends notifications to this email address.
+# email_from = dnf-automatic@example.com  # Sets the "from" address for notifications.
+# 
+# [base]
+# debuglevel = 1  # Sets the verbosity level for logging.
+
+# Additional dnf-automatic Commands and Information
+
+# 1. To start or stop a dnf-automatic timer manually:
+sudo systemctl start dnf-automatic-notifyonly.timer
+
+# 2. To disable a dnf-automatic timer:
+sudo systemctl disable dnf-automatic-install.timer
+
+# 3. Checking logs for dnf-automatic actions:
+journalctl -u dnf-automatic
