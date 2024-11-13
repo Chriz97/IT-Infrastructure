@@ -1,0 +1,151 @@
+# Essential Linux Commands Script
+
+# The 'whereis' command helps locate the binary, source, and manual page for an application.
+# For example, 'whereis dnf' will show the locations for the dnf application.
+whereis dnf
+
+# The 'ls' command lists files and directories in the current directory.
+# Adding options like '-l' for long format or '-a' to show hidden files provides more details.
+ls -la
+
+# The 'pwd' command prints the current working directory, showing the full directory path.
+pwd
+
+# The 'cd' command changes the current directory. For example, 'cd /home' changes to the /home directory.
+cd /home
+
+# The 'cp' command copies files or directories.
+# For example, 'cp file1.txt /backup/' copies file1.txt to the /backup directory.
+cp file1.txt /backup/
+
+# The 'mv' command moves or renames files and directories.
+# For example, 'mv file1.txt file2.txt' renames file1.txt to file2.txt.
+mv file1.txt file2.txt
+
+# The 'rm' command removes (deletes) files or directories.
+# Be cautious: 'rm file1.txt' deletes file1.txt, and 'rm -r directory/' deletes an entire directory.
+rm file1.txt
+
+# The 'mkdir' command creates a new directory.
+# For example, 'mkdir new_folder' creates a directory named 'new_folder'.
+mkdir new_folder
+
+# The 'touch' command creates a new empty file or updates the timestamp of an existing file.
+# For example, 'touch newfile.txt' creates a file named newfile.txt.
+touch newfile.txt
+
+# The 'cat' command displays the content of a file.
+# For example, 'cat file1.txt' shows the content of file1.txt.
+cat file1.txt
+
+# The 'head' command displays the first few lines of a file (default is 10 lines).
+# For example, 'head file1.txt' shows the first 10 lines of file1.txt.
+head file1.txt
+
+# The 'tail' command displays the last few lines of a file (default is 10 lines).
+# For example, 'tail file1.txt' shows the last 10 lines of file1.txt.
+tail file1.txt
+
+# The 'grep' command searches for specific text within files.
+# For example, 'grep "error" logfile.txt' searches for the word "error" in logfile.txt.
+grep "error" logfile.txt
+
+# The 'find' command searches for files or directories within a specified path.
+# For example, 'find / -name "file1.txt"' searches for file1.txt in the entire filesystem.
+find / -name "file1.txt"
+
+# The 'chmod' command changes the permissions of files or directories.
+# For example, 'chmod 755 script.sh' sets read, write, execute for owner and read, execute for others.
+chmod 755 script.sh
+
+# The 'chown' command changes the ownership of files or directories.
+# For example, 'chown user:group file1.txt' changes the owner to 'user' and group to 'group' for file1.txt.
+chown user:group file1.txt
+
+# The 'ps' command displays currently running processes.
+# For example, 'ps aux' shows all processes with detailed information.
+ps aux
+
+# The 'kill' command terminates a process using its process ID (PID).
+# For example, 'kill 1234' terminates the process with PID 1234.
+kill 1234
+
+# The 'df' command displays the available disk space on all mounted filesystems.
+# For example, 'df -h' shows disk usage in a human-readable format.
+df -h
+
+# The 'du' command estimates file and directory space usage.
+# For example, 'du -sh /home' shows the total size of the /home directory in a human-readable format.
+du -sh /home
+
+# The 'top' command displays real-time information about running processes and system resource usage.
+# Press 'q' to quit the top command.
+top
+
+# The 'free' command displays memory usage, including free and used memory.
+# For example, 'free -h' shows memory usage in a human-readable format.
+free -h
+
+# The 'uname' command provides system information.
+# For example, 'uname -a' shows detailed information about the system and kernel.
+uname -a
+
+# The 'echo' command outputs text to the terminal or writes it to a file.
+# For example, 'echo "Hello, World!"' displays "Hello, World!" in the terminal.
+echo "Hello, World!"
+
+# The 'history' command shows a list of previously executed commands.
+# For example, 'history | grep ls' filters the command history to show only commands containing 'ls'.
+history | grep ls
+
+# The 'ping' command tests the network connection to another computer or server.
+# For example, 'ping google.com' sends packets to google.com to check connectivity.
+ping -c 4 google.com
+
+# The 'curl' command transfers data from or to a server, often used to download files or fetch URLs.
+# For example, 'curl http://example.com' fetches the content of example.com.
+curl http://example.com
+
+# The 'wget' command downloads files from the internet.
+# For example, 'wget http://example.com/file.zip' downloads file.zip from example.com.
+wget http://example.com/file.zip
+
+# The 'tar' command archives files, often used to compress or extract files.
+# For example, 'tar -czvf archive.tar.gz /path/to/files' creates a compressed archive.
+tar -czvf archive.tar.gz /path/to/files
+
+# The 'zip' and 'unzip' commands compress and extract zip files.
+# For example, 'zip -r archive.zip /path/to/files' creates a zip file, and 'unzip archive.zip' extracts it.
+zip -r archive.zip /path/to/files
+unzip archive.zip
+
+# The 'date' command displays or sets the system date and time.
+# For example, 'date' shows the current date and time.
+date
+
+# The 'cal' command displays a calendar.
+# For example, 'cal' shows the current month's calendar.
+cal
+
+# The 'shutdown' command powers off or reboots the system.
+# For example, 'sudo shutdown now' powers off immediately, and 'sudo shutdown -r now' reboots.
+sudo shutdown now
+sudo shutdown -r now
+
+# The 'useradd' command creates a new user, and 'passwd' sets the password.
+# For example, 'sudo useradd newuser' creates a new user, and 'sudo passwd newuser' sets their password.
+sudo useradd newuser
+sudo passwd newuser
+
+# The 'usermod' command modifies user account settings.
+# For example, 'sudo usermod -aG sudo newuser' adds newuser to the sudo group.
+sudo usermod -aG sudo newuser
+
+# The 'crontab' command schedules recurring tasks.
+# For example, 'crontab -e' opens the crontab editor to schedule tasks.
+crontab -e
+
+# The 'systemctl' command manages systemd services.
+# For example, 'sudo systemctl start nginx' starts the nginx service, and 'sudo systemctl enable nginx' enables it on boot.
+sudo systemctl start nginx
+sudo systemctl enable nginx
