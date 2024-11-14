@@ -1,0 +1,58 @@
+# Linux Networking Introduction Script
+# All commands were tested on Fedora 41: KDE Spin.
+
+# Ping uses the ICMP protocol to check connectivity to a host.
+# Example: ping google.com
+ping google.com
+
+# ifconfig (interface configuration) displays network interface configuration information.
+# Example: ifconfig (shows IP addresses, MAC addresses, and more)
+ifconfig
+
+# nmcli is a command-line tool for managing network connections with NetworkManager.
+# Example: nmcli device status (displays the status of all network devices)
+nmcli device status
+
+# To connect to a Wi-Fi network using nmcli, use the following:
+# Example: nmcli device wifi connect "NetworkName" password "Password123"
+nmcli device wifi connect "NetworkName" password "Password123"
+
+# nslookup queries DNS to find the IP address associated with a domain name.
+# Example: nslookup example.com (resolves example.com to an IP address)
+nslookup example.com
+
+# traceroute shows the path that packets take to reach a destination host.
+# It displays each hop along the route and the response times for each hop.
+# Example: traceroute google.com
+traceroute google.com
+
+# ip is a newer command replacing ifconfig for displaying and configuring network interfaces.
+# Example: ip a (displays all network interfaces and IP addresses)
+ip a
+
+# ip route shows the routing table, detailing the paths packets take through the network.
+# Example: ip route (shows default gateway and routes)
+ip route
+
+# dig (Domain Information Groper) queries DNS servers for information on domain names.
+# Example: dig example.com (retrieves DNS records for example.com)
+dig example.com
+
+# arp (Address Resolution Protocol) shows or manipulates the system's ARP cache.
+# This is useful for mapping IP addresses to MAC addresses.
+# Example: arp -a (displays the ARP table)
+arp -a
+
+# netstat displays network connections, routing tables, and interface statistics.
+# It provides information on active network connections and listening ports.
+# Example: netstat -tuln (shows listening TCP and UDP ports)
+netstat -tuln
+
+# ss (socket statistics) is similar to netstat but provides more detailed and faster output.
+# Example: ss -tuln (shows listening TCP and UDP ports)
+ss -tuln
+
+# host resolves domain names to IP addresses (similar to nslookup).
+# Example: host example.com
+host example.com
+
