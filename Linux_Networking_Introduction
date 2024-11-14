@@ -5,6 +5,8 @@
 # Example: ping google.com
 ping google.com
 
+ping -i 2 google.com # Specify an interval (2 Pings in this example)
+
 # ifconfig (interface configuration) displays network interface configuration information.
 # Example: ifconfig (shows IP addresses, MAC addresses, and more)
 ifconfig
