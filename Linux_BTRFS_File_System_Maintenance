@@ -1,0 +1,52 @@
+# Btrfs Scrub: Verify and Repair Data
+
+# Start a BTRFS Scrub
+sudo btrfs scrub start /path/to/mount
+
+# Check the Status of the BTFRS Scrub
+sudo btrfs scrub status /path/to/mount
+
+# Stop a Running Scrub
+sudo btrfs scrub cancel /path/to/mount
+
+# Btrfs Balance: Reorganize and Reclaim Space
+
+# Start a Btrfs Balance
+sudo btrfs balance start /path/to/mount
+
+# Run a Balance with Filters
+sudo btrfs balance start -dusage=75 -musage=75 /path/to/mount (Rebalances only data (-d) or metadata (-m) blocks with a usage threshold of 75%.)
+
+# Check the Status of a Balance
+sudo btrfs balance status /path/to/mount
+
+# Cancel a running balance
+sudo btrfs balance cancel /path/to/mount
+
+# Btrfs Filesystem Check: Inspect and Repair
+
+# Check a Btrfs Filesystem
+sudo btrfs check /dev/sdX
+
+# Repair a Corrupted Btrfs Filesystem
+sudo btrfs check --repair /dev/sdX
+
+Btrfs Defragmentation: Optimize File Layout
+sudo btrfs filesystem defragment -v /home (-rv if recursive function is also desired)
+
+# Btrfs Space Usage: Monitor and Manage
+
+# Check Disk Usage
+sudo btrfs filesystem df /path/to/mount
+
+# Check Disk Usage with Details
+sudo btrfs filesystem usage /path/to/mount
+
+# Btrfs Quotas: Enable and Monitor Quota Management
+
+# Enable Quotas
+sudo btrfs quota enable /path/to/mount
+
+# View Quota Usage
+sudo btrfs qgroup show /path/to/mount
+
