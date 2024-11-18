@@ -1,0 +1,14 @@
+# Install Required Tools
+sudo dnf install enscript ghostscript
+
+Convert the .c File to a PDF
+enscript -p output.ps your_file.c && ps2pdf output.ps your_file.pdf
+
+# Single Command
+enscript -p - your_file.c | ps2pdf - your_file.pdf
+
+# Add line number
+enscript -C -p output.ps your_file.c && ps2pdf output.ps your_file.pdf
+
+# To specify a font or page layout:
+enscript -B -f Courier10 -p output.ps your_file.c && ps2pdf output.ps your_file.pdf
