@@ -13,6 +13,18 @@ sudo dnf list available
 # Displays all repositories currently enabled on the system.
 dnf repolist
 
+# Count the number of installed packages from the "fedora" repository
+dnf list --installed | awk '{if ($3 == "fedora") print $0}' | wc -l
+
+# Install a package (e.g., nano) from the default repositories
+sudo dnf install nano
+
+# Count the number of installed packages from the "google-chrome" repository
+dnf list --installed | awk '{if ($3 == "google-chrome") print $0}' | wc -l
+
+# Install a package (e.g., google-chrome-stable) from the google-chrome repository
+sudo dnf install --repo=google-chrome google-chrome-stable
+
 # Install a package (e.g., nano)
 # Installs the specified package. Replace 'nano' with the name of the package you want to install.
 sudo dnf install nano
