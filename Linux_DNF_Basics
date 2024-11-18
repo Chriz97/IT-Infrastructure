@@ -1,0 +1,88 @@
+# Linux DNF Basics Script
+# 
+
+# Show help for dnf
+# Displays a list of available dnf commands and their usage.
+dnf --help
+
+# List all available packages
+# Shows a list of all packages that can be installed from enabled repositories.
+sudo dnf list available
+
+# Show the list of enabled repositories
+# Displays all repositories currently enabled on the system.
+dnf repolist
+
+# Install a package (e.g., nano)
+# Installs the specified package. Replace 'nano' with the name of the package you want to install.
+sudo dnf install nano
+
+# Reinstall a package
+# Reinstalls the specified package, useful if files have been corrupted or deleted.
+sudo dnf reinstall nano
+
+# Remove a package
+# Uninstalls the specified package from the system.
+sudo dnf remove nano
+
+# Search for a package
+# Searches for a package by name or description in the enabled repositories.
+dnf search nano
+
+# Show dependencies for a package
+# Lists the dependencies required for the specified package.
+dnf deplist nano
+
+# Clean cached metadata
+# Clears the cached metadata used by dnf to ensure the latest repository information is fetched.
+sudo dnf clean metadata
+
+# Show the history of dnf transactions
+# Displays a list of past dnf transactions, including installs, updates, and removals.
+dnf history list
+
+# Check the system for issues
+# Verifies that there are no problems with installed packages or the package database.
+dnf check
+
+# Additional Useful Commands
+
+# Upgrade all packages
+# Updates all installed packages to the latest versions available in the enabled repositories.
+sudo dnf upgrade -y
+
+# Download a package without installing
+# Downloads the specified package to the current directory without installing it.
+sudo dnf download nano
+
+# List installed packages
+# Shows all packages currently installed on the system.
+sudo dnf list installed
+
+# List enabled/disabled repositories
+# Show detailed information about enabled and disabled repositories.
+dnf repolist all
+
+# Disable a repository temporarily
+# Installs a package while excluding a specific repository temporarily. Replace REPO_NAME with the repository ID.
+sudo dnf install nano --disablerepo=REPO_NAME
+
+# Enable a repository temporarily
+# Installs a package from a disabled repository temporarily. Replace REPO_NAME with the repository ID.
+sudo dnf install nano --enablerepo=REPO_NAME
+
+# Remove unused dependencies
+# Cleans up orphaned dependencies that are no longer required by any installed package.
+sudo dnf autoremove -y
+
+# View info about a package
+# Displays detailed information about a package, including its version, repository, and description.
+dnf info nano
+
+# Check for available security updates
+# Lists all available security updates for the system.
+sudo dnf updateinfo list security
+
+# Apply security updates
+# Installs only updates classified as security fixes.
+sudo dnf upgrade --security -y
