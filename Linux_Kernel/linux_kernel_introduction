@@ -1,1 +1,30 @@
+# Linux Kernel Introduction
+# This script demonstrates how to download, configure, compile, and install the Linux kernel.
 
+# Shows the latest Kernel Version
+curl https://www.kernel.org/finger_banner
+
+#  Clones the stable Linux kernel repository from kernel.org.
+git clone git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+
+# Switch to the Kernel directory
+cd linux-stablle
+
+# Download the required tools for Kernel Development
+sudo dnf groupinstall "Development Tools" -y
+sudo dnf install -y ncurses-devel bison flex elfutils-libelf-devel openssl-devel perl perl-IPC-Cmd
+
+# Use the default configuration or customize it with menuconfig.
+make menuconfig
+
+# Build the kernel using the number of CPU cores for faster compilation.
+make -j$(nproc)
+
+# Installation of the Kernel modules
+sudo make modules_install
+
+# Install the compiled kernel and create the necessary boot entries.
+sudo make install
+
+# Update the GRUB bootloader configuration to include the new kernel.
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
