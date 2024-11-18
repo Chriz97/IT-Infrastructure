@@ -1,0 +1,103 @@
+#!/bin/bash
+# Advanced Linux Commands Script
+# This script demonstrates advanced Linux commands with comments explaining their functionality.
+
+# 1. Find Command
+# Search for files and directories based on various criteria (e.g., name, type, size).
+# Example: Find all .log files larger than 10MB in the /var/log directory.
+find /var/log -type f -name "*.log" -size +10M
+
+# 2. Grep Command with Recursive Search
+# Search for a specific pattern in multiple files or directories.
+# Example: Find all occurrences of the word "error" in .conf files in /etc.
+grep -r "error" /etc --include="*.conf"
+
+# 3. Tar Command for Backup
+# Create and extract tar archives with gzip compression.
+# Example: Backup the /home directory into a compressed archive.
+tar -czvf home_backup.tar.gz /home
+
+# Extract the archive
+tar -xzvf home_backup.tar.gz
+
+# 4. Rsync Command
+# Synchronize directories between local or remote machines efficiently.
+# Example: Sync /var/www to a remote server.
+rsync -avz /var/www user@remote-server:/backup/
+
+# 5. Sed Command for Text Manipulation
+# Stream editor for searching and replacing text in files.
+# Example: Replace "foo" with "bar" in all .txt files in the current directory.
+sed -i 's/foo/bar/g' *.txt
+
+# 6. Awk Command for Data Processing
+# Example: Print the second column of a space-separated file.
+awk '{print $2}' data.txt
+
+# 7. Disk Usage Analysis
+# Use du and df for disk usage details.
+# Example: Show the disk usage of directories in the /var folder.
+du -h /var | sort -h | tail -10
+
+# Show disk space usage of all mounted filesystems
+df -h
+
+# 8. Process Management
+# View and manage processes with ps, top, and kill.
+# Example: Show all processes for a specific user.
+ps -u username
+
+# Example: Kill a process by name.
+pkill -f process_name
+
+# 9. Networking Commands
+# Check open ports and active connections.
+# Example: Show all open network ports.
+netstat -tuln
+
+# Example: Test connectivity to a host.
+ping -c 4 google.com
+
+# 10. Log Monitoring
+# Use tail and less to monitor logs.
+# Example: Follow the latest entries in a log file in real-time.
+tail -f /var/log/syslog
+
+# 11. User and Group Management
+# Add a new user and assign them to a group.
+# Example: Create a user and add them to the "admin" group.
+sudo useradd -m -G admin newuser
+
+# Example: Change the password for the user.
+sudo passwd newuser
+
+# 12. Crontab for Automation
+# Schedule a job to run at a specific time.
+# Example: Add a cron job to back up /home every day at midnight.
+echo "0 0 * * * tar -czvf /backup/home_backup.tar.gz /home" | crontab -
+
+# 13. Advanced File Permissions
+# Use chmod, chown, and setfacl for advanced permission control.
+# Example: Grant read, write, and execute permissions to the owner and deny to others.
+chmod 700 /path/to/file
+
+# Example: Change the owner of a file to "user" and the group to "group."
+chown user:group /path/to/file
+
+# Example: Add an ACL to allow a specific user read access to a file.
+setfacl -m u:username:r /path/to/file
+
+# 14. System Performance Monitoring
+# Use top, htop, and iostat for performance metrics.
+# Example: Monitor CPU and memory usage.
+top
+
+# Example: View detailed I/O statistics.
+iostat -x 5
+
+# 15. File Compression with xz
+# Example: Compress a file with xz.
+xz -z largefile.txt
+
+# Example: Decompress the file.
+xz -d largefile.txt.xz
