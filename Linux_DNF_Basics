@@ -1,5 +1,5 @@
 # Linux DNF Basics Script
-# 
+# All commands were verified using the Fedora 41: KDE Spin
 
 # Show help for dnf
 # Displays a list of available dnf commands and their usage.
