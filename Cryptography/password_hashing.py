@@ -1,17 +1,15 @@
 import hashlib
-import random
+import os
 import bcrypt
 
 # SHA-256 Example with Salt
 plaintext = "password123"
 
 # Generate a random salt
-salt = random.randint(0, 10**99)
-
-salt_bytes = salt.to_bytes((salt.bit_length() // 8) + 1, byteorder='big')
+salt = os.urandom(16)
 
 # Combine salt and plaintext
-salted_plaintext = salt_bytes + plaintext.encode()
+salted_plaintext = salt+ plaintext.encode()
 
 # Calculate SHA-256 hash with salt
 sha256_hash = hashlib.sha256(salted_plaintext).hexdigest()
@@ -30,4 +28,3 @@ print("bcrypt hash with salt:", bcrypt_hash.decode())
 is_matched = bcrypt.checkpw(plaintext.encode(), bcrypt_hash)
 
 print("bcrypt hash matches plaintext:", is_matched)
-
