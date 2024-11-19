@@ -1,5 +1,13 @@
 # Source: https://support.google.com/chrome/a/answer/9696904?hl=en
 
+# How does Google hash passwords?
+
+#When users sign in to specific sign-in pages, Chrome generates a password fingerprint. Using scrypt, Chrome hashes the password and shortens it to 37 bits, 
+#which is enough to identify the password if it’s reused on dangerous or disallowed websites. 
+#Chrome then encrypts the partial hash using the OS-level username, if available.
+
+
+
 import hashlib
 import os
 
