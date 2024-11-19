@@ -8,7 +8,7 @@ curl https://www.kernel.org/finger_banner
 git clone git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 
 # Switch to the Kernel directory
-cd linux-stablle
+cd linux-stable
 
 # Download the required tools for Kernel Development
 sudo dnf groupinstall "Development Tools" -y
@@ -20,8 +20,12 @@ make menuconfig
 # Build the kernel using the number of CPU cores for faster compilation.
 make -j$(nproc)
 
+
 # Installation of the Kernel modules
-sudo make modules_install
+sudo make modules_instal
+
+# Kernel Cleaning
+make clean && make mrproper
 
 # Install the compiled kernel and create the necessary boot entries.
 sudo make install
