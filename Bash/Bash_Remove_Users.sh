@@ -9,7 +9,7 @@ for user in "${users[@]}"; do
     echo "Removing user: $user"
 
     # Sanitize username (replace invalid characters for Linux usernames)
-    sanitized_user=$(echo "$user" | tr -c 'a-zA-Z0-9' '_')
+    sanitized_user=$(echo "$user" | tr -c 'a-zA-Z0-9' '_' | sed 's/_$//')
 
     # Check if the user exists
     if id "$sanitized_user" &>/dev/null; then
