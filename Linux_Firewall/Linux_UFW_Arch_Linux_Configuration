@@ -62,6 +62,10 @@ sudo ufw logging medium
 # Logs all connection attempts, both allowed and denied, providing the most detail.
 sudo ufw logging high
 
+# Check Logs for UFW in Kernel Messages
+# Use dmesg to view kernel messages related to UFW.
+sudo dmesg | grep -i "UFW"
+
 # Turn Logging Off
 sudo ufw logging off
 
