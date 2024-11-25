@@ -12,8 +12,10 @@
 # and enables management via the Cockpit Web Console.
 
 # Enable the CRB (CodeReady Builder) Repository
-# The CRB repository is required for some dependencies.
+# The CRB repository is required for some dependencies. (Not required on Fedora, tested on 11/25/24 at 10:40 PM.
 sudo dnf config-manager --set-enabled crb
+
+sudo dnf install cockpit => Only on Fedora, Centos and RHEL ship with cockpit installed
 
 # Install Cockpit Session Recording and tlog
 # Cockpit Session Recording integrates with the Cockpit Web Console to manage session recording.
