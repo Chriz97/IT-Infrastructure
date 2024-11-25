@@ -1,0 +1,56 @@
+#!/bin/bash
+# SSSD Session Recording Setup Script for RHEL
+# Source: 5 Security technologies in Linux you should be using NOW! | Into the Terminal 127
+# Video URL: https://www.youtube.com/watch?v=AtPEdUZnRuw
+# Channel: Red Hat Enterprise Linux
+# Description: This script sets up SSSD session recording based on recommendations from the video.
+
+#!/bin/bash
+# SSSD Session Recording Setup Script for RHEL
+# Tested on RHEL-based systems with tlog and Cockpit Session Recording.
+# This script installs necessary tools, configures SSSD for session recording, 
+# and enables management via the Cockpit Web Console.
+
+# Enable the CRB (CodeReady Builder) Repository
+# The CRB repository is required for some dependencies.
+sudo dnf config-manager --set-enabled crb
+
+# Install Cockpit Session Recording and tlog
+# Cockpit Session Recording integrates with the Cockpit Web Console to manage session recording.
+# tlog is the logging tool for terminal sessions.
+sudo dnf install cockpit-session-recording tlog -y
+
+# Enable and Start the Cockpit Service
+# The Cockpit Web Console is used to configure and manage session recording.
+sudo systemctl enable --now cockpit.socket
+
+
+# After enabling the cockpit.socket service, session recording configuration can be managed via the Cockpit Web Console.
+# Access the Web Console by opening a web browser and navigating to:
+# https://<server-ip>:9090
+# Log in with your system credentials and navigate to the "Session Recording" section for further configurations.
+
+# Restart SSSD Service
+# Restarting SSSD ensures that any previous configurations are reset.
+sudo systemctl restart sssd
+
+# Configure SSSD for Session Recording
+# Edit the SSSD configuration to enable session recording.
+sudo nano /etc/sssd/conf.d/sssd-session-recording.conf
+
+# Add the following configuration in the file:
+# -----------------------------------------------------
+# [sssd]
+# services = nss, pam
+# config_file_version = 2
+# domains = default
+#
+# [domain/default]
+# enumerate = true
+#
+# [session_recording]
+# scope = all
+# -----------------------------------------------------
+
+# Save the configuration and restart SSSD for the changes to take effect.
+sudo systemctl restart sssd
