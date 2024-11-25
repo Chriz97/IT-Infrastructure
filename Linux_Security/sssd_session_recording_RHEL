@@ -38,7 +38,7 @@ sudo systemctl restart sssd
 # Edit the SSSD configuration to enable session recording.
 sudo nano /etc/sssd/conf.d/sssd-session-recording.conf
 
-# Add the following configuration in the file:
+# Check the following configuration in the file:
 # -----------------------------------------------------
 # [sssd]
 # services = nss, pam
