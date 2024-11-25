@@ -1,12 +1,11 @@
 #!/bin/bash
 # UFW Configuration Script for Arch Linux
-# All commands were tested on Arch Linux. (11/20/2024)
+# All commands were tested on Arch Linux.
 # This script provides basic and advanced UFW commands for setup and configuration.
-# Note: Always test firewall rules in a non-production environment before applying them.
 
 # Installation of UFW
 # Install UFW using Pacman.
-sudo pacman -Syu ufw
+sudo pacman -S ufw
 
 # Enable and Start UFW
 # Enables the UFW service and activates it.
@@ -79,12 +78,6 @@ sudo ufw allow OpenSSH
 # Show a List of Predefined Applications
 sudo ufw app list
 
-# Enable IPv6 in UFW Configuration
-# Edit the configuration file to ensure IPv6 support.
-echo "Enabling IPv6 in UFW..."
-sudo sed -i 's/IPV6=no/IPV6=yes/g' /etc/ufw/ufw.conf
-sudo ufw reload
-
 # Default Policies:
 
 # Deny All Incoming Traffic and Allow Outgoing Traffic
@@ -99,5 +92,3 @@ sudo ufw deny from 198.51.100.20
 
 # Allow All Traffic to a Specific Port Range (e.g., 8000-8100)
 sudo ufw allow 8000:8100/tcp
-
-echo "UFW Configuration Script Completed for Arch Linux!"
