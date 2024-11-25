@@ -1,0 +1,99 @@
+#!/bin/bash
+# UFW Configuration Script for Arch Linux
+# All commands were tested on Arch Linux. (11/20/2024)
+# This script provides basic and advanced UFW commands for setup and configuration.
+# Note: Always test firewall rules in a non-production environment before applying them.
+
+# Installation of UFW
+# Install UFW using Pacman.
+sudo pacman -Syu ufw
+
+# Enable and Start UFW
+# Enables the UFW service and activates it.
+sudo ufw enable
+
+# Check the Status of UFW
+sudo ufw status verbose
+
+# Basic UFW Commands:
+
+# Allow SSH (Port 22) to Ensure Remote Access
+sudo ufw allow ssh
+
+# Allow a Specific Port (HTTP, Port 80 in this Example)
+sudo ufw allow 80/tcp
+
+# Allow Multiple Ports
+sudo ufw allow 3000:3005/tcp
+
+# Deny a Specific Port (Example: Blocking FTP, Port 21)
+sudo ufw deny 21
+
+# Delete a Rule (Example: Removing HTTP Access)
+sudo ufw delete allow 80/tcp
+
+# Reload UFW Rules to Apply Changes
+sudo ufw reload
+
+# Advanced UFW Commands:
+
+# Allow a Specific IP Address (Example: Allow SSH from 192.168.1.100)
+sudo ufw allow from 192.168.1.100 to any port 22
+
+# Block a Specific IP Address
+sudo ufw deny from 203.0.113.100
+
+# Allow Traffic to a Specific Subnet
+sudo ufw allow from 192.168.1.0/24
+
+# Enable Logging with Default Level (low)
+# This is the minimal logging level and only logs essential information.
+sudo ufw logging on
+
+# Set Logging Level to Low
+# Logs only denied incoming connections.
+sudo ufw logging low
+
+# Set Logging Level to Medium (Recommended)
+# Logs denied incoming connections and additional information about allowed connections.
+sudo ufw logging medium
+
+# Set Logging Level to High
+# Logs all connection attempts, both allowed and denied, providing the most detail.
+sudo ufw logging high
+
+# Turn Logging Off
+sudo ufw logging off
+
+# Reset UFW Rules
+# WARNING: This will remove all UFW rules and disable UFW.
+sudo ufw reset
+
+# Allow Specific Applications (Example: Allowing Predefined OpenSSH Profile)
+sudo ufw allow OpenSSH
+
+# Show a List of Predefined Applications
+sudo ufw app list
+
+# Enable IPv6 in UFW Configuration
+# Edit the configuration file to ensure IPv6 support.
+echo "Enabling IPv6 in UFW..."
+sudo sed -i 's/IPV6=no/IPV6=yes/g' /etc/ufw/ufw.conf
+sudo ufw reload
+
+# Default Policies:
+
+# Deny All Incoming Traffic and Allow Outgoing Traffic
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Allow Traffic on a Specific Interface (Example: eth0)
+sudo ufw allow in on eth0
+
+# Deny All Traffic from a Specific IP
+sudo ufw deny from 198.51.100.20
+
+# Allow All Traffic to a Specific Port Range (e.g., 8000-8100)
+sudo ufw allow 8000:8100/tcp
+
+echo "UFW Configuration Script Completed for Arch Linux!"
