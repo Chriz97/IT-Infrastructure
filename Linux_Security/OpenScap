@@ -1,0 +1,36 @@
+# Script to Perform Security Audits Using OpenSCAP
+# This script installs required tools, performs a security scan based on SCAP content, and generates an HTML report.
+# This script was tested on Cent OS Stream 9
+
+# Step 1: Install Required Packages
+# - `httpd`: A web server that may be required for hosting or accessing reports.
+# - `openscap-scanner`: The OpenSCAP command-line tool for performing security scans.
+# - `scap-security-guide`: Contains predefined SCAP content for various operating systems.
+sudo dnf install -y httpd openscap-scanner scap-security-guide
+
+# Step 2: Locate SCAP Security Content
+# SCAP content files are typically stored in `/usr/share/xml/scap/ssg/content/`.
+# Navigate to this directory or refer to its contents for the appropriate XML file.
+cd /usr/share/xml/scap/ssg/content/
+ls
+
+# Step 3: View SCAP Content Information
+# Use the `oscap info` command to inspect the SCAP content file and learn about available profiles.
+# Replace `ssg-cs9-ds.xml` with the SCAP content file appropriate for your operating system version.
+oscap info /usr/share/xml/scap/ssg/content/ssg-cs9-ds.xml
+
+# Step 4: Run a Security Audit
+# Use the `oscap xccdf eval` command to perform an evaluation based on the specified profile.
+# - `--profile`: Specifies the security baseline to evaluate against. In this case, we use `ospp` (Protection Profile for general-purpose operating systems).
+# - `--results`: Outputs the evaluation results to an XML file.
+# - `--report`: Generates an easy-to-read HTML report.
+# Replace `ssg-cs9-ds.xml` with the appropriate SCAP content file for your system.
+oscap xccdf eval \
+--profile xccdf_org.ssgproject.content_profile_ospp \
+--results ssg-cs9-ds.xml \
+--report ssg-cs9-ds.html \
+/usr/share/xml/scap/ssg/content/ssg-cs9-ds.xml
+
+# Step 5: View the HTML Report
+# Replace `ssg-cs9-ds.html` with the name of your generated report if different.
+firefox ssg-cs9-ds.html
