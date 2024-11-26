@@ -1,58 +1,110 @@
+# IT-Infrastructure
 
-This repository, **IT-Infrastructure**, is a collection of scripts and configuration files tailored for managing and configuring Linux and Windows environments. These resources are valuable for system administrators working in IT infrastructure, covering essential aspects such as automatic updates, Docker installation, firewall configuration, GRUB adjustments for NVIDIA compatibility, and Active Directory management.
-
----
-
-## Linux Scripts and Manuals
-
-### Linux_Automatic_Update_DNF
-**Description**: This script automates system updates on RHEL-based Linux distributions using `dnf-automatic`. It configures automatic downloads and installations, ensuring systems stay up-to-date with the latest security patches.
-
-**Features**:
-- Installs and configures `dnf-automatic`. (Also called dnf5-autmatic-plugin on Fedora)
-- Enables and manages timers for scheduled updates.
-- Configures email notifications for update summaries.
-
-### Linux_Docker_Installation
-**Description**: This manual provides step-by-step instructions to install Docker CE on RHEL-based distributions. It’s tailored for administrators who need Docker without Podman compatibility.
-
-**Features**:
-- Installs Docker CE and its dependencies.
-- Configures Docker to start automatically on boot.
-- Includes commands for managing containers, images, and network configurations.
-
-### Linux_Essential_Commands
-**Description**: A script and guide covering essential Linux commands for file management, process control, network diagnostics, and more.
-
-**Features**:
-- Covers basic commands for navigation, file management, and permissions.
-- Includes process management and system resource monitoring commands.
-- Useful for quick reference and foundational knowledge.
-
-### Linux_Firewalld_Basic_Configuration
-**Description**: This script provides a basic configuration for `firewalld`, including common commands to manage zones, open or close ports, and enable logging.
-
-**Features**:
-- Installs and configures `firewalld`.
-- Demonstrates commands for setting up zones and managing services.
-- Useful for administrators who need to secure their Linux systems with custom firewall rules.
-
-### Linux_Grub_Configuration_Fedora_Nvidia
-**Description**: A GRUB configuration manual for Fedora systems with NVIDIA graphics cards. This guide helps resolve compatibility issues with NVIDIA by blacklisting the Nouveau driver.
-
-**Features**:
-- Updates GRUB with NVIDIA-compatible settings.
-- Blacklists Nouveau drivers and enables `nvidia-drm.modeset=1` for better graphics performance.
-- Helps administrators with dual GPU or dedicated NVIDIA setups.
+This repository, **IT-Infrastructure**, is a collection of scripts, configuration files, and manuals designed for managing Linux and Windows systems. The content is organized into folders, each covering a specific area of IT infrastructure, making it easy to find and use relevant scripts or configurations.
 
 ---
 
-## Windows Scripts and Manuals
+## **Folder Structure**
 
-### Windows_Active_Directory_Script
-**Description**: A PowerShell script for managing Active Directory users and groups. It’s tested on Windows Server 2025 and provides essential user and group management commands.
+### **.NET**
+- Contains resources and scripts for .NET development and integration.
+- Includes examples for working with Active Directory using .NET and automating administrative tasks.
 
-**Features**:
-- Creates new users with specific attributes.
-- Adds users to groups and resets passwords.
-- Includes checks for group existence and automatic group creation if missing.
+---
+
+### **Active_Directory**
+- Scripts and configurations for managing Windows Active Directory environments.
+- Includes basic and advanced PowerShell scripts for user and group management, as well as automated policy configuration.
+
+---
+
+### **Bash**
+- A collection of Bash scripts for automating tasks in Linux environments.
+- Covers topics like file operations, networking, variables, loops, functions, and user management.
+
+---
+
+### **Cryptography**
+- Contains Python scripts and tools related to encryption and cryptographic operations.
+- Examples include SSH key generation for secure communications.
+
+---
+
+### **Database_Management**
+- Basic SQL scripts for working with databases, including commands for creating, updating, and managing database tables.
+- Useful for administrators working with relational databases.
+
+---
+
+### **DevOps**
+- Scripts and tools for Git and CI/CD pipeline management.
+- Includes configuration files for automating build, test, and deployment workflows.
+
+---
+
+### **Docker_Kubernetes**
+- Resources for containerization and orchestration.
+- Includes installation guides for Docker on RHEL-based distributions and essential Kubernetes commands for managing clusters.
+
+---
+
+### **Linux_Automation_with_Python**
+- Python scripts for automating tasks in Linux environments.
+- Includes examples for system updates, file operations, and process automation.
+
+---
+
+### **Linux_Commands**
+- Scripts and manuals covering both basic and advanced Linux commands.
+- Topics range from file management and networking to system monitoring and diagnostics.
+
+---
+
+### **Linux_Firewall**
+- Contains scripts for configuring firewalls on Linux systems.
+- Includes `firewalld` for RHEL-based systems and `ufw` for Ubuntu or Arch Linux.
+
+---
+
+### **Linux_Kernel**
+- Resources for working with the Linux kernel.
+- Includes commands for downloading, compiling, and managing kernel versions.
+
+---
+
+### **Linux_Package_Management**
+- Scripts for managing packages on Linux distributions.
+- Covers tools like `dnf`, `yum`, and `apt` for installing, updating, and removing software.
+
+---
+
+### **Linux_Security**
+- Security-focused scripts and configurations for Linux systems.
+- Includes SELinux management commands and session recording setups with SSSD and Cockpit.
+
+---
+
+### **Networking**
+- Resources for network management and diagnostics.
+- Covers tools like `nmcli`, `ping`, `traceroute`, and basic networking configurations for Linux systems.
+
+---
+
+### **PowerShell**
+- PowerShell scripts for managing Windows systems.
+- Includes basic scripts for variables, loops, and advanced commands for system administration.
+
+---
+
+### **SSH**
+- A collection of SSH-related commands and scripts.
+- Includes examples for generating SSH keys, configuring key-based authentication, and securing SSH access.
+
+---
+
+## **License**
+This repository is licensed under the MIT License. Contributions and feedback are welcome.
+
+---
+
+This folder structure provides a well-organized approach to managing Linux and Windows systems. Each folder contains specialized content to simplify IT infrastructure tasks.
