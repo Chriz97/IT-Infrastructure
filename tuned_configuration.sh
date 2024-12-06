@@ -2,6 +2,11 @@
 # Script to Install, Configure, and Test Tuned on CentOS Stream 9
 # This script demonstrates how to manage and create custom profiles using Tuned.
 
+# What is Tuned?
+# Tuned is a Linux daemon used to optimize system performance by applying predefined or custom tuning profiles.
+# It dynamically adjusts system parameters like CPU governor, disk I/O scheduler, and kernel settings
+# to match workload requirements, improving efficiency and performance.
+
 # Step 1: Check the Status of Tuned
 # Verify if the Tuned service is running.
 sudo systemctl status tuned
@@ -94,6 +99,3 @@ tuned-adm profile virtual-guest
 # Verify the changes again.
 cat /proc/sys/vm/swappiness
 cat /sys/block/nvme0n1/queue/scheduler
-
-# End of Script
-echo "Tuned configuration and testing completed."
