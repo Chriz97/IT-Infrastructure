@@ -1,6 +1,7 @@
-#
-#
-#
+# This script sets up a basic QUIC server using aioquic.
+# It listens on port 4433 and uses TLS certificates to establish a secure QUIC connection.
+# When a client connects and sends data, the server prints the received data
+# and responds with a simple "Hello from the server!" message before ending the stream.
 
 import asyncio
 from aioquic.asyncio import serve
