@@ -37,7 +37,7 @@ This repository, **IT-Infrastructure**, is a collection of scripts, configuratio
 ---
 
 ### **DevOps**
-- Scripts and tools for Git and CI/CD pipeline management.
+- Scripts and tools for Git
 - Includes configuration files for automating build, test, and deployment workflows.
 
 ---
@@ -74,19 +74,14 @@ This repository, **IT-Infrastructure**, is a collection of scripts, configuratio
 
 ### **Linux_Package_Management**
 - Scripts for managing packages on Linux distributions.
-- Covers tools like `dnf`, `yum`, and `apt` for installing, updating, and removing software.
-
----
-
-### **Linux_Security**
-- Security-focused scripts and configurations for Linux systems.
-- Includes SELinux management commands and session recording setups with SSSD and Cockpit.
+- Covers tools like `dnf` or  `rpm` for installing, updating, troubleshooting, and removing software.
 
 ---
 
 ### **Networking**
 - Resources for network management and diagnostics.
 - Covers tools like `nmcli`, `ping`, `traceroute`, and basic networking configurations for Linux systems.
+- In addition Network Protocols like TCP, QUIC and ARP are covered in a server/client configuration.
 
 ---
 
@@ -104,7 +99,3 @@ This repository, **IT-Infrastructure**, is a collection of scripts, configuratio
 
 ## **License**
 This repository is licensed under the MIT License. Contributions and feedback are welcome.
-
----
-
-This folder structure provides a well-organized approach to managing Linux and Windows systems. Each folder contains specialized content to simplify IT infrastructure tasks.
