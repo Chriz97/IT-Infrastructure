@@ -36,12 +36,6 @@ This repository, **IT-Infrastructure**, is a collection of scripts, configuratio
 
 ---
 
-### **DevOps**
-- Scripts and tools for Git
-- Includes configuration files for automating build, test, and deployment workflows.
-
----
-
 ### **Docker_Kubernetes**
 - Resources for containerization and orchestration.
 - Includes installation guides for Docker on RHEL-based distributions and essential Kubernetes commands for managing clusters.
