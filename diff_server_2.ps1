@@ -419,140 +419,8 @@ try {
 catch {
     Write-Warning "Error accessing the BAT files. Check paths and permissions."
 }
-###############################################################################
-# 8) Compare EXE Files (*.exe) using SHA256 Hash
-###############################################################################
-Write-Host "`n=== Comparing EXE files... ==="
-
-try {
-    $oldExeFiles = Get-ChildItem -Path $oldApachePath -Recurse -Filter "*.exe" -Attributes !Hidden -File
-    $newExeFiles = Get-ChildItem -Path $newApachePath -Recurse -Filter "*.exe" -Attributes !Hidden -File
-
-    $exeDiff = @()
-
-    foreach ($oldFile in $oldExeFiles) {
-        $relativePath = Get-RelativePath $oldFile.FullName $oldApachePath
-        $newFile = $newExeFiles | Where-Object { (Get-RelativePath $_.FullName $newApachePath) -eq $relativePath } | Select-Object -First 1
-
-        if ($null -eq $newFile) {
-            $exeDiff += [pscustomobject]@{
-                FileName   = $relativePath
-                Difference = "File only exists in old installation"
-            }
-        }
-        else {
-            $oldHash = Get-FileHash -Algorithm SHA256 -Path $oldFile.FullName | Select-Object -ExpandProperty Hash
-            $newHash = Get-FileHash -Algorithm SHA256 -Path $newFile.FullName | Select-Object -ExpandProperty Hash
-
-            if ($oldHash -ne $newHash) {
-                $exeDiff += [pscustomobject]@{
-                    FileName   = $relativePath
-                    Difference = "Content differs"
-                    OldSHA256  = $oldHash
-                    NewSHA256  = $newHash
-                }
-            }
-        }
-    }
-
-    foreach ($newFile in $newExeFiles) {
-        $relativePath = Get-RelativePath $newFile.FullName $newApachePath
-        $oldFile = $oldExeFiles | Where-Object { (Get-RelativePath $_.FullName $oldApachePath) -eq $relativePath } | Select-Object -First 1
-
-        if ($null -eq $oldFile) {
-            $exeDiff += [pscustomobject]@{
-                FileName   = $relativePath
-                Difference = "File only exists in new installation"
-            }
-        }
-    }
-
-    if ($exeDiff) {
-        Write-Host "`n=== EXE file differences found ==="
-        foreach ($diff in $exeDiff) {
-            if ($diff.PSObject.Properties.Name -contains "OldSHA256") {
-                Write-Host "$($diff.FileName) - $($diff.Difference)"
-                Write-Host "    Old SHA256: $($diff.OldSHA256)"
-                Write-Host "    New SHA256: $($diff.NewSHA256)"
-            } else {
-                Write-Host "$($diff.FileName) - $($diff.Difference)"
-            }
-        }
-    } else {
-        Write-Host "No EXE file differences found."
-    }
-}
-catch {
-    Write-Warning "Error accessing the EXE files. Check paths and permissions."
-}
-###############################################################################
-# 9) Compare Shell Script Files (*.sh) using SHA256 Hash
-###############################################################################
-Write-Host "`n=== Comparing Shell Script files... ==="
-
-try {
-    $oldShFiles = Get-ChildItem -Path $oldApachePath -Recurse -Filter "*.sh" -Attributes !Hidden -File
-    $newShFiles = Get-ChildItem -Path $newApachePath -Recurse -Filter "*.sh" -Attributes !Hidden -File
-
-    $shDiff = @()
-
-    foreach ($oldFile in $oldShFiles) {
-        $relativePath = Get-RelativePath $oldFile.FullName $oldApachePath
-        $newFile = $newShFiles | Where-Object { (Get-RelativePath $_.FullName $newApachePath) -eq $relativePath } | Select-Object -First 1
-
-        if ($null -eq $newFile) {
-            $shDiff += [pscustomobject]@{
-                FileName   = $relativePath
-                Difference = "File only exists in old installation"
-            }
-        }
-        else {
-            $oldHash = Get-FileHash -Algorithm SHA256 -Path $oldFile.FullName | Select-Object -ExpandProperty Hash
-            $newHash = Get-FileHash -Algorithm SHA256 -Path $newFile.FullName | Select-Object -ExpandProperty Hash
-
-            if ($oldHash -ne $newHash) {
-                $shDiff += [pscustomobject]@{
-                    FileName   = $relativePath
-                    Difference = "Content differs"
-                    OldSHA256  = $oldHash
-                    NewSHA256  = $newHash
-                }
-            }
-        }
-    }
-
-    foreach ($newFile in $newShFiles) {
-        $relativePath = Get-RelativePath $newFile.FullName $newApachePath
-        $oldFile = $oldShFiles | Where-Object { (Get-RelativePath $_.FullName $oldApachePath) -eq $relativePath } | Select-Object -First 1
-
-        if ($null -eq $oldFile) {
-            $shDiff += [pscustomobject]@{
-                FileName   = $relativePath
-                Difference = "File only exists in new installation"
-            }
-        }
-    }
-
-    if ($shDiff) {
-        Write-Host "`n=== Shell Script file differences found ==="
-        foreach ($diff in $shDiff) {
-            if ($diff.PSObject.Properties.Name -contains "OldSHA256") {
-                Write-Host "$($diff.FileName) - $($diff.Difference)"
-                Write-Host "    Old SHA256: $($diff.OldSHA256)"
-                Write-Host "    New SHA256: $($diff.NewSHA256)"
-            } else {
-                Write-Host "$($diff.FileName) - $($diff.Difference)"
-            }
-        }
-    } else {
-        Write-Host "No Shell Script file differences found."
-    }
-}
-catch {
-    Write-Warning "Error accessing the Shell Script files. Check paths and permissions."
-}
-###############################################################################
-# 10) Compare SO Files (*.so) using SHA256 Hash
+################################################################################
+# 9) Compare SO Files (*.so) using SHA256 Hash
 ###############################################################################
 Write-Host "`n=== Comparing SO files... ==="
 
@@ -617,6 +485,73 @@ try {
 catch {
     Write-Warning "Error accessing the SO files. Check paths and permissions."
 }
+###############################################################################
+# 10) Compare YAML Files (*.yaml and *.yml) using SHA256 Hash
+###############################################################################
+Write-Host "`n=== Comparing YAML files... ==="
+
+try {
+    $oldYamlFiles = Get-ChildItem -Path $oldApachePath -Recurse -Include "*.yaml", "*.yml" -Attributes !Hidden -File
+    $newYamlFiles = Get-ChildItem -Path $newApachePath -Recurse -Include "*.yaml", "*.yml" -Attributes !Hidden -File
+
+    $yamlDiff = @()
+
+    foreach ($oldFile in $oldYamlFiles) {
+        $relativePath = Get-RelativePath $oldFile.FullName $oldApachePath
+        $newFile = $newYamlFiles | Where-Object { (Get-RelativePath $_.FullName $newApachePath) -eq $relativePath } | Select-Object -First 1
+
+        if ($null -eq $newFile) {
+            $yamlDiff += [pscustomobject]@{
+                FileName   = $relativePath
+                Difference = "File only exists in old installation"
+            }
+        }
+        else {
+            $oldHash = Get-FileHash -Algorithm SHA256 -Path $oldFile.FullName | Select-Object -ExpandProperty Hash
+            $newHash = Get-FileHash -Algorithm SHA256 -Path $newFile.FullName | Select-Object -ExpandProperty Hash
+
+            if ($oldHash -ne $newHash) {
+                $yamlDiff += [pscustomobject]@{
+                    FileName   = $relativePath
+                    Difference = "Content differs"
+                    OldSHA256  = $oldHash
+                    NewSHA256  = $newHash
+                }
+            }
+        }
+    }
+
+    foreach ($newFile in $newYamlFiles) {
+        $relativePath = Get-RelativePath $newFile.FullName $newApachePath
+        $oldFile = $oldYamlFiles | Where-Object { (Get-RelativePath $_.FullName $oldApachePath) -eq $relativePath } | Select-Object -First 1
+
+        if ($null -eq $oldFile) {
+            $yamlDiff += [pscustomobject]@{
+                FileName   = $relativePath
+                Difference = "File only exists in new installation"
+            }
+        }
+    }
+
+    if ($yamlDiff) {
+        Write-Host "`n=== YAML file differences found ==="
+        foreach ($diff in $yamlDiff) {
+            if ($diff.PSObject.Properties.Name -contains "OldSHA256") {
+                Write-Host "$($diff.FileName) - $($diff.Difference)"
+                Write-Host "    Old SHA256: $($diff.OldSHA256)"
+                Write-Host "    New SHA256: $($diff.NewSHA256)"
+            } else {
+                Write-Host "$($diff.FileName) - $($diff.Difference)"
+            }
+        }
+    } else {
+        Write-Host "No YAML file differences found."
+    }
+}
+catch {
+    Write-Warning "Error accessing the YAML files. Check paths and permissions."
+}
+
 ###############################################################################
 # 11) Compare VAR Files (*.var) using SHA256 Hash
 ###############################################################################
@@ -752,6 +687,19 @@ catch {
 
 Write-Host "`nComparison complete."
 ###############################################################################
+# Ask for Confirmation Before Copying
+###############################################################################
+Write-Host "`n=== Copying missing and modified files to the new installation... ==="
+
+# Prompt user for confirmation
+$response = Read-Host "Do you want to proceed with copying missing and modified files? (yes/no)"
+if ($response -ne "yes") {
+    Write-Host "Copying aborted by the user."
+    return  # Exit the script or skip copying
+}
+
+Write-Host "Proceeding with copying files..."
+###############################################################################
 # Copy Missing or Modified Files to New Installation
 ###############################################################################
 Write-Host "`n=== Copying missing and modified files to the new installation... ==="
@@ -787,6 +735,22 @@ foreach ($diff in $folderDiff) {
     }
 }
 
+# Overwrite modified YAML files
+foreach ($diff in $yamlDiff) {
+    if ($diff.Difference -eq "Content differs" -or $diff.Difference -eq "File only exists in old installation") {
+        $sourcePath = Join-Path -Path $oldApachePath -ChildPath $diff.FileName
+        $destinationPath = Join-Path -Path $newApachePath -ChildPath $diff.FileName
+
+        # Create directory if needed
+        $destinationDir = Split-Path -Path $destinationPath -Parent
+        if (-not (Test-Path -Path $destinationDir)) {
+            New-Item -ItemType Directory -Path $destinationDir | Out-Null
+        }
+
+        # Copy YAML file
+        Copy-File -Source $sourcePath -Destination $destinationPath
+    }
+}
 # Overwrite modified config and ini files
 $configAndIniDiffs = $configDiff + $iniDiff
 foreach ($diff in $configAndIniDiffs) {
@@ -800,4 +764,3 @@ foreach ($diff in $configAndIniDiffs) {
 }
 
 Write-Host "`n=== Copying complete. ==="
-
