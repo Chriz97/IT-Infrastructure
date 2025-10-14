@@ -6,16 +6,6 @@ This repository, **IT-Infrastructure**, is a collection of scripts, configuratio
 
 ## **Folder Structure**
 
-### **.NET**
-- Contains resources and scripts for .NET development and integration.
-- Includes examples for working with Active Directory using .NET and automating administrative tasks.
-
----
-
-### **Active_Directory**
-- Scripts and configurations for managing Windows Active Directory environments.
-- Includes basic and advanced PowerShell scripts for user and group management, as well as automated policy configuration.
-
 ---
 
 ### **Bash**
