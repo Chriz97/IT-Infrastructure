@@ -15,7 +15,7 @@ grep -r "error" /etc --include="*.conf"
 # 3. Tar Command for Backup
 # Create and extract tar archives with gzip compression.
 # Example: Backup the /home directory into a compressed archive.
-tar -czvf home_backup.tar.gz /home
+tar -czvf home_backup.tar.gz /home/user
 
 # Extract the archive
 tar -xzvf home_backup.tar.gz
@@ -66,7 +66,7 @@ tail -f /var/log/syslog
 # 11. User and Group Management
 # Add a new user and assign them to a group.
 # Example: Create a user and add them to the "admin" group.
-sudo useradd -m -G admin newuser
+sudo useradd -m -aG admin newuser
 
 # Example: Change the password for the user.
 sudo passwd newuser
