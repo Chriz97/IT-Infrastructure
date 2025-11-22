@@ -20,22 +20,25 @@ nm_active_conn_for_iface() {
   nmcli -t -f NAME,DEVICE con show --active | awk -F: -v d="$ifc" '$2==d {print $1; exit}'
 }
 
+
 dns_up() {
-  # Prefer a real DNS query to TCP port checks.
   if have dig; then
-    # Query the internal record from the target server; expect the LAN IP back.
-    # If TEST_NAME isn't hosted on 192.168.0.4, you can change the grep to just check for any answer.
     local ans
-    ans=$(dig +time=${DIG_TIMEOUT} +tries=1 +short @"${LAN_DNS}" "${TEST_NAME}" A || true)
+    ans=$(dig +time=${DIG_TIMEOUT} +tries=1 +short @"${LAN_DNS}" "${TEST_NAME}" A 2>/dev/null || true)
+    
+    # Check for actual IP address response, not error messages
     [[ "$ans" == "192.168.0.4" ]] && return 0
-    # If that exact match fails, still treat any non-empty answer as "server up".
-    [[ -n "$ans" ]] && return 0
+    
+    # Only treat as success if we got a valid IP-like response
+    if [[ -n "$ans" ]] && [[ "$ans" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      return 0
+    fi
+    
     return 1
   elif have nc; then
     nc -z -w ${DIG_TIMEOUT} "${LAN_DNS}" 53
     return $?
   else
-    # Fallback: TCP connect using bash builtins (works if /dev/tcp is enabled)
     (exec 3<>/dev/tcp/"${LAN_DNS}"/53) 2>/dev/null && { exec 3>&-; return 0; }
     return 1
   fi
@@ -64,7 +67,7 @@ set_dns_resolved() {
   echo "Using systemd-resolved on interface \"$ifc\""
   # Clear existing per-link DNS then set new
   resolvectl revert "$ifc" >/dev/null 2>&1 || true
-  resolvectl dns "$ifc" $target
+  resolvectl dns "$ifc" "$target"
   resolvectl flush-caches >/dev/null 2>&1 || true
   echo "Set IPv4 DNS to: $target"
 }
