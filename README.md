@@ -12,20 +12,6 @@ This repository, **IT-Infrastructure**, is a collection of scripts, configuratio
 - A collection of Bash scripts for automating tasks in Linux environments.
 - Covers topics like file operations, networking, variables, loops, functions, and user management.
 
----
-
-### **Cryptography**
-- Contains Python scripts and tools related to encryption and cryptographic operations.
-- Examples include SSH key generation for secure communications.
-
----
-
-### **Database_Management**
-- Basic SQL scripts for working with databases, including commands for creating, updating, and managing database tables.
-- Useful for administrators working with relational databases.
-
----
-
 ### **Docker_Kubernetes**
 - Resources for containerization and orchestration.
 - Includes installation guides for Docker on RHEL-based distributions and essential Kubernetes commands for managing clusters.
