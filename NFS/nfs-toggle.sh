@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-SERVER="192.168.0.220"
+SERVER="192.168.0.5"
 EXPORT="/srv/nfs/share"
 MOUNTPOINT="/mnt/share"
 # Tweak options if needed:
