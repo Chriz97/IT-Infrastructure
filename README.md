@@ -1,71 +1,146 @@
 # IT-Infrastructure
 
-This repository, **IT-Infrastructure**, is a collection of scripts, configuration files, and manuals designed for managing Linux and Windows systems. The content is organized into folders, each covering a specific area of IT infrastructure, making it easy to find and use relevant scripts or configurations.
+## Overview
+
+**IT-Infrastructure** is a Linux-focused repository containing scripts, configuration files, and documentation for **system administration, automation, networking, storage, and security**.
+
+The repository serves as a **practical toolkit and reference** for managing Linux systems in real-world environments. Content is organized by topic, with each directory focusing on a specific infrastructure domain.
 
 ---
 
-## **Folder Structure**
+## Repository Structure
+
+### 📁 Administration
+- General administrative scripts for Linux systems.
+- Includes utilities such as NFS service toggling and system-level helper scripts.
 
 ---
 
-### **Bash**
-- A collection of Bash scripts for automating tasks in Linux environments.
-- Covers topics like file operations, networking, variables, loops, functions, and user management.
-
-### **Docker_Kubernetes**
-- Resources for containerization and orchestration.
-- Includes installation guides for Docker on RHEL-based distributions and essential Kubernetes commands for managing clusters.
+### 📁 Ansible
+- Configuration and resources for Ansible-based automation.
+- Includes:
+  - `ansible.conf`
+  - Foundational setup for future playbooks and roles.
 
 ---
 
-### **Linux_Automation_with_Python**
-- Python scripts for automating tasks in Linux environments.
-- Includes examples for system updates, file operations, and process automation.
+### 📁 Backup
+- Scripts related to backup and recovery operations.
+- Includes automation for GitLab backups and infrastructure data protection.
 
 ---
 
-### **Linux_Commands**
-- Scripts and manuals covering both basic and advanced Linux commands.
-- Topics range from file management and networking to system monitoring and diagnostics.
+### 📁 Linux-Package-Management
+- Scripts and references for managing software packages on Linux systems.
+- Focuses on:
+  - `dnf`
+  - `rpm`
+- Covers installation, updates, troubleshooting, and package maintenance.
 
 ---
 
-### **Linux_Firewall**
-- Contains scripts for configuring firewalls on Linux systems.
-- Includes `firewalld` for RHEL-based systems and `ufw` for Ubuntu or Arch Linux.
+### 📁 Linux-Storage
+- Storage management scripts and examples.
+- Includes:
+  - LVM logical volume creation
+  - Mounting and managing Linux storage devices
 
 ---
 
-### **Linux_Kernel**
-- Resources for working with the Linux kernel.
-- Includes commands for downloading, compiling, and managing kernel versions.
+### 📁 Linux_Automation_with_Python
+- Python-based automation for Linux administration tasks.
+- Includes scripts focused on:
+  - Security automation
+  - System-level operations
+  - Administrative tooling written in Python
 
 ---
 
-### **Linux_Package_Management**
-- Scripts for managing packages on Linux distributions.
-- Covers tools like `dnf` or  `rpm` for installing, updating, troubleshooting, and removing software.
+### 📁 Linux_Commands
+- Documentation and scripts covering commonly used Linux commands.
+- Includes both basic and advanced examples for:
+  - File management
+  - User and group administration
+  - Archiving and system utilities
 
 ---
 
-### **Networking**
-- Resources for network management and diagnostics.
-- Covers tools like `nmcli`, `ping`, `traceroute`, and basic networking configurations for Linux systems.
-- In addition Network Protocols like TCP, QUIC and ARP are covered in a server/client configuration.
+### 📁 Linux_Firewall
+- Firewall configuration and management for Linux systems.
+- Covers:
+  - `ufw` (including Arch Linux configuration)
+  - Firewall best practices for securing Linux hosts
 
 ---
 
-### **PowerShell**
-- PowerShell scripts for managing Windows systems.
-- Includes basic scripts for variables, loops, and advanced commands for system administration.
+### 📁 Linux_Kernel
+- Resources related to Linux kernel management.
+- Includes:
+  - Kernel compilation and version management
+  - Kernel-related operational references
 
 ---
 
-### **SSH**
-- A collection of SSH-related commands and scripts.
-- Includes examples for generating SSH keys, configuring key-based authentication, and securing SSH access.
+### 📁 NFS
+- Network File System (NFS) related scripts and utilities.
+- Includes:
+  - Scripts for enabling and disabling NFS services
+  - NFS administrative helpers
 
 ---
 
-## **License**
-This repository is licensed under the MIT License. Contributions and feedback are welcome.
+### 📁 Networking
+- Networking tools, scripts, and references for Linux systems.
+- Includes:
+  - Network diagnostics
+  - `tcpdump` usage examples
+  - Core networking concepts and tooling
+
+---
+
+### 📁 Nginx
+- Configuration examples and supporting files for Nginx.
+- Focused on:
+  - Web server configuration
+  - Reverse proxy and service integration scenarios
+
+---
+
+### 📁 SELinux
+- Scripts and tests related to SELinux.
+- Includes:
+  - SELinux violation testing
+  - Policy and enforcement behavior exploration
+
+---
+
+### 📁 SSH
+- SSH-related scripts and configurations.
+- Includes:
+  - SSH key generation scripts
+  - Secure access configuration and best practices
+
+---
+
+### 📁 Systemctl
+- Custom scripts and examples for managing services with `systemctl`.
+- Includes:
+  - Service control helpers
+  - Systemd operational scripts
+
+---
+
+## Purpose of This Repository
+
+- Provide **practical Linux system administration tooling**
+- Serve as a **personal and professional reference**
+- Support **automation, security, and operational best practices**
+- Act as a foundation for expanding infrastructure and security workflows
+
+---
+
+## License
+
+This repository is licensed under the **MIT License**.
+
+Contributions, suggestions, and feedback are welcome.
