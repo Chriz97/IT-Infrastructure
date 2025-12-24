@@ -12,7 +12,7 @@ The repository serves as a **practical toolkit and reference** for managing Linu
 
 ### 📁 Administration
 - General administrative scripts for Linux systems.
-- Includes utilities such as NFS service toggling and system-level helper scripts.
+- Includes utilities such as Tuned Configuration Management and system-level helper scripts.
 
 ---
 
