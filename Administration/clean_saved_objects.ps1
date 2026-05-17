@@ -1,115 +1,46 @@
-#Requires -Version 5.1
-<#
-.SYNOPSIS
-    Kibana Saved Objects Cleanup — kibana.mayer-it.net
+# ── Configuration ────────────────────────────────────────────────────────────
 
-.DESCRIPTION
-    Fetches saved objects via POST /api/saved_objects/_export (NDJSON) and:
-
-    STEP 1 — Duplicate Removal
-        Finds same type+title appearing more than once.
-        Keeps the *managed* copy (integration/fleet-installed).
-        If NO managed copy exists -> all copies are user-created -> skipped.
-
-    STEP 2 — Config (Advanced Settings) Pruning
-        Keeps the $KeepConfigCount newest 'config' objects (created during upgrades).
-
-    STEP 3 — Dangling Reference Detection
-        Finds objects whose references point to IDs that no longer exist.
-        Managed objects and dashboards are protected unless explicitly enabled.
-
-    Run with $DryRun = $true (default) to preview. Set $false to apply.
-#>
-
-# ══════════════════════════════════════════════════════════════════
-#  CONFIGURATION  <- edit here
-# ══════════════════════════════════════════════════════════════════
-
-$KibanaUrl   = "https://...."
-$Username    = "elastic"
+$KibanaUrl   = "
+$Username    = ""
 $Password    = ""
 
-$DryRun                   = $true   # <- $false to apply changes
+$DryRun                   = $true
 $KeepConfigCount          = 4       # keep newest N config objects per space
-$DeleteDanglingDashboards = $false  # set $true to also delete dashboards with broken refs
+$DeleteDanglingDashboards = $false  # also delete dashboards with broken refs
+$DeleteOrphanedTags       = $true   # delete tag objects not referenced by anything
 
-# Titles to never delete, regardless of type or duplicate status.
-# Supports wildcards, e.g. "metrics-*", "Nginx *"
 $ExcludeTitles = @(
     "metrics-*"
 )
 
-# Space filtering:
-#   ""       -> default space  (no /s/{id} prefix)
-#   "myid"   -> that specific space only
-#   "*"      -> ALL spaces (enumerates via /api/spaces/space and loops each)
+# ""  -> default space | "myid" -> specific space | "*" -> all spaces
 $Space = ""
 
-# ══════════════════════════════════════════════════════════════════
-#  INTERNALS — do not edit below
-# ══════════════════════════════════════════════════════════════════
+# ── Internals ────────────────────────────────────────────────────────────────
 
-$ExportTypes = @(
-    "dashboard"
-    "visualization"
-    "lens"
-    "map"
-    "search"
-    "index-pattern"
-    "config"
-    "tag"
-)
+$ExportTypes         = @("dashboard","visualization","lens","map","search","index-pattern","config","tag")
+$DuplicateCheckTypes = @("dashboard","visualization","lens","map","search","index-pattern")
 
-$DuplicateCheckTypes = @(
-    "dashboard"
-    "visualization"
-    "lens"
-    "map"
-    "search"
-    "index-pattern"
-)
-
-# ── Auth headers ──────────────────────────────────────────────────
-$EncodedCred = [Convert]::ToBase64String(
-    [Text.Encoding]::ASCII.GetBytes("${Username}:${Password}")
-)
+$EncodedCred = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${Username}:${Password}"))
 $BaseHeaders = @{
     "Authorization" = "Basic $EncodedCred"
     "kbn-xsrf"      = "true"
     "Content-Type"  = "application/json"
 }
 
-# ── Counters ──────────────────────────────────────────────────────
 $script:TotalSkipped = 0
 
-# ── Logging ───────────────────────────────────────────────────────
 function Write-Log {
     param(
-        [ValidateSet("INFO","SKIP","ACTION","WARN","ERROR","OK")]
+        [ValidateSet("INFO","DEBUG","WARN","ERROR")]
         [string]$Level,
         [string]$Message
     )
     $dryTag = if ($DryRun) { " [DRY]" } else { "" }
-    $color  = switch ($Level) {
-        "INFO"   { "Cyan"       }
-        "SKIP"   { "DarkGray"   }
-        "ACTION" { "Yellow"     }
-        "WARN"   { "DarkYellow" }
-        "OK"     { "Green"      }
-        "ERROR"  { "Red"        }
-    }
-    $stamp = Get-Date -Format "HH:mm:ss"
-    Write-Host "  $stamp$dryTag [$Level] $Message" -ForegroundColor $color
+    $stamp  = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+    Write-Host "$stamp$dryTag level=$($Level.ToLower()) msg=`"$Message`""
 }
 
-function Write-Section ([string]$Title) {
-    Write-Host ""
-    Write-Host "  ══════════════════════════════════════════════" -ForegroundColor DarkCyan
-    Write-Host "   $Title"                                        -ForegroundColor White
-    Write-Host "  ══════════════════════════════════════════════" -ForegroundColor DarkCyan
-}
-
-# ── Exclusion check ───────────────────────────────────────────────
 function Test-Excluded ([string]$Title) {
     foreach ($pattern in $ExcludeTitles) {
         if ($Title -like $pattern) { return $true }
@@ -117,34 +48,21 @@ function Test-Excluded ([string]$Title) {
     return $false
 }
 
-# ── Build the base API URL for a given space ID ───────────────────
 function Get-ApiBase ([string]$SpaceId) {
-    if ($SpaceId -eq "" -or $SpaceId -eq "default") {
-        return "$KibanaUrl/api"
-    }
+    if ($SpaceId -eq "" -or $SpaceId -eq "default") { return "$KibanaUrl/api" }
     return "$KibanaUrl/s/$SpaceId/api"
 }
 
-# ── List all space IDs via /api/spaces/space ──────────────────────
 function Get-AllSpaceIds {
     try {
-        $result = Invoke-RestMethod `
-            -Method      GET `
-            -Uri         "$KibanaUrl/api/spaces/space" `
-            -Headers     $BaseHeaders `
-            -ErrorAction Stop
+        $result = Invoke-RestMethod -Method GET -Uri "$KibanaUrl/api/spaces/space" -Headers $BaseHeaders -ErrorAction Stop
         return @($result | ForEach-Object { $_.id })
     } catch {
         Write-Log ERROR "Could not enumerate spaces: $_"
-        return @("")   # fall back to default space
+        return @("")
     }
 }
 
-# ── NDJSON parser ─────────────────────────────────────────────────
-# Kibana's export API emits pretty-printed JSON (multiple lines per object).
-# Splitting naively on \n produces broken fragments — only the first object's
-# id would be seen, hence the "1 unique ID" bug.
-# Fix: track brace depth; accumulate lines until depth returns to zero.
 function ConvertFrom-NdJson ([string]$Content) {
     $objects = [System.Collections.Generic.List[object]]::new()
     $buffer  = [System.Text.StringBuilder]::new()
@@ -153,10 +71,9 @@ function ConvertFrom-NdJson ([string]$Content) {
     $escape  = $false
 
     foreach ($line in ($Content -split "`n")) {
-        $trimmed = $line.TrimEnd("`r")   # strip CR for Windows-style line endings
+        $trimmed = $line.TrimEnd("`r")
         if ($trimmed.Trim() -eq "") { continue }
 
-        # Count brace depth, skipping chars inside string literals
         foreach ($ch in $trimmed.ToCharArray()) {
             if ($escape)         { $escape = $false; continue }
             if ($ch -eq '\')     { $escape = $true;  continue }
@@ -171,10 +88,9 @@ function ConvertFrom-NdJson ([string]$Content) {
         if ($depth -eq 0 -and $buffer.Length -gt 2) {
             $json = $buffer.ToString().Trim()
             try {
-                $obj = $json | ConvertFrom-Json -ErrorAction Stop
-                $objects.Add($obj)
+                $objects.Add(($json | ConvertFrom-Json -ErrorAction Stop))
             } catch {
-                Write-Log WARN "Skipped unparseable object: $($json.Substring(0, [Math]::Min(80,$json.Length)))..."
+                Write-Log WARN "Skipped unparseable NDJSON object: $($json.Substring(0,[Math]::Min(80,$json.Length)))..."
             }
             [void]$buffer.Clear()
         }
@@ -183,12 +99,11 @@ function ConvertFrom-NdJson ([string]$Content) {
     return $objects.ToArray()
 }
 
-# ── Export objects for one space ──────────────────────────────────
 function Get-ExportedObjects ([string]$SpaceId) {
     $label   = if ($SpaceId -eq "") { "default" } else { $SpaceId }
     $apiBase = Get-ApiBase $SpaceId
 
-    Write-Log INFO "Exporting from space: '$label' ..."
+    Write-Log INFO "Exporting from space '$label'"
 
     $body = @{
         type                  = $ExportTypes
@@ -197,25 +112,20 @@ function Get-ExportedObjects ([string]$SpaceId) {
     } | ConvertTo-Json -Compress
 
     try {
-        # Use HttpClient directly — Invoke-WebRequest's .Content and .RawContentBytes
-        # are both unreliable for application/x-ndjson on Linux (unknown content-type
-        # causes the body to be null or a decimal byte string).
-        $handler  = [System.Net.Http.HttpClientHandler]::new()
-        $client   = [System.Net.Http.HttpClient]::new($handler)
+        $handler = [System.Net.Http.HttpClientHandler]::new()
+        $client  = [System.Net.Http.HttpClient]::new($handler)
 
-        $request  = [System.Net.Http.HttpRequestMessage]::new(
-                        [System.Net.Http.HttpMethod]::Post,
-                        "$apiBase/saved_objects/_export")
+        $request = [System.Net.Http.HttpRequestMessage]::new(
+            [System.Net.Http.HttpMethod]::Post,
+            "$apiBase/saved_objects/_export")
 
         foreach ($kv in $BaseHeaders.GetEnumerator()) {
-            if ($kv.Key -eq "Content-Type") { continue }   # set on content below
+            if ($kv.Key -eq "Content-Type") { continue }
             $request.Headers.TryAddWithoutValidation($kv.Key, $kv.Value) | Out-Null
         }
 
         $request.Content = [System.Net.Http.StringContent]::new(
-                                $body,
-                                [System.Text.Encoding]::UTF8,
-                                "application/json")
+            $body, [System.Text.Encoding]::UTF8, "application/json")
 
         $httpResponse = $client.SendAsync($request).GetAwaiter().GetResult()
         $rawText      = $httpResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult()
@@ -227,79 +137,137 @@ function Get-ExportedObjects ([string]$SpaceId) {
         }
 
         $objects = ConvertFrom-NdJson -Content $rawText
-
-        # Tag each object with its space for scoped grouping and deletes
         foreach ($obj in $objects) {
             $obj | Add-Member -NotePropertyName "_spaceId" -NotePropertyValue $label -Force
         }
 
-        Write-Log INFO "  -> $($objects.Count) object(s) from space '$label'"
+        Write-Log INFO "Space '$label': $($objects.Count) object(s) exported"
         return $objects
 
     } catch {
-        $status = if ($_.Exception.Response) { $_.Exception.Response.StatusCode.value__ } else { "unknown" }
+        Write-Log ERROR "Exception exporting space '$label': $_"
         return @()
     }
 }
 
-# ── Delete one saved object ───────────────────────────────────────
 function Remove-KibanaObject {
     param([string]$Type, [string]$Id, [string]$Label, [string]$SpaceId)
 
-    Write-Log ACTION "DELETE [$Type] $Label  (id: $Id, space: $SpaceId)"
+    Write-Log INFO "DELETE [$Type] $Label (id: $Id, space: $SpaceId)"
 
     if (-not $DryRun) {
         $apiBase = Get-ApiBase $SpaceId
         try {
-            Invoke-RestMethod `
-                -Method      DELETE `
-                -Uri         "$apiBase/saved_objects/$Type/$Id" `
-                -Headers     $BaseHeaders `
-                -ErrorAction Stop | Out-Null
-            Write-Log OK "    Removed"
+            Invoke-RestMethod -Method DELETE -Uri "$apiBase/saved_objects/$Type/$Id" -Headers $BaseHeaders -ErrorAction Stop | Out-Null
+            Write-Log DEBUG "Deleted [$Type] $Id"
         } catch {
             $status = if ($_.Exception.Response) { $_.Exception.Response.StatusCode.value__ } else { "unknown" }
-            Write-Log ERROR "    Failed (HTTP $status): $_"
+            Write-Log ERROR "Delete failed [$Type] $Id (HTTP $status): $_"
         }
     }
 }
 
-# ══════════════════════════════════════════════════════════════════
-#  MAIN
-# ══════════════════════════════════════════════════════════════════
+# Returns a tuple: (assetMap hashtable, package array)
+# assetMap:  pkgKey -> HashSet[string] of expected saved object IDs
+# packages:  PSCustomObject[] with Name, Version, Title, AssetIds
+function Get-EpmPackageAssets {
+    Write-Log INFO "Fetching installed EPM packages"
 
-Write-Host ""
-Write-Host "  ╔══════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "  ║   Kibana Saved Objects Cleanup               ║" -ForegroundColor Cyan
-Write-Host "  ║   $KibanaUrl"                                   -ForegroundColor Cyan
-$spaceLabel = switch ($Space) { "" { "default" } "*" { "ALL spaces" } default { $Space } }
-Write-Host "  ║   Space: $spaceLabel"                           -ForegroundColor Cyan
-if ($DryRun) {
-Write-Host "  ║   *** DRY RUN  — no changes will be made ***  ║" -ForegroundColor Yellow
-} else {
-Write-Host "  ║   *** LIVE MODE — changes WILL be applied *** ║" -ForegroundColor Red
+    try {
+        $listResult = Invoke-RestMethod `
+            -Method      GET `
+            -Uri         "$KibanaUrl/api/fleet/epm/packages?prerelease=false&experimental=true" `
+            -Headers     $BaseHeaders `
+            -ErrorAction Stop
+    } catch {
+        Write-Log ERROR "Could not fetch EPM package list: $_"
+        return $null, @()
+    }
+
+    $installed = @($listResult.items | Where-Object { $_.status -eq "installed" })
+    Write-Log INFO "EPM: $($installed.Count) installed package(s) found"
+
+    $assetMap = @{}
+    $pkgList  = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($pkg in $installed) {
+        $pkgKey = "$($pkg.name)@$($pkg.version)"
+
+        try {
+            $detail = Invoke-RestMethod `
+                -Method      GET `
+                -Uri         "$KibanaUrl/api/fleet/epm/packages/$($pkg.name)/$($pkg.version)" `
+                -Headers     $BaseHeaders `
+                -ErrorAction Stop
+
+            $assetIds = [System.Collections.Generic.HashSet[string]]::new()
+
+            # Response schema varies slightly; savedObjects and assets both appear in practice
+            $assets = if ($detail.item.savedObjects) { $detail.item.savedObjects }
+                      elseif ($detail.item.assets)   { $detail.item.assets }
+                      else                            { @() }
+
+            foreach ($asset in $assets) {
+                if ($asset.id) { [void]$assetIds.Add($asset.id) }
+            }
+
+            $assetMap[$pkgKey] = $assetIds
+            $pkgList.Add([PSCustomObject]@{
+                Key      = $pkgKey
+                Name     = $pkg.name
+                Version  = $pkg.version
+                Title    = $pkg.title
+                AssetIds = $assetIds
+            })
+
+            Write-Log DEBUG "EPM [$pkgKey]: $($assetIds.Count) saved object asset(s)"
+
+        } catch {
+            Write-Log WARN "EPM [$pkgKey]: could not fetch package details — skipping: $_"
+        }
+    }
+
+    return $assetMap, $pkgList.ToArray()
 }
-Write-Host "  ╚══════════════════════════════════════════════╝" -ForegroundColor Cyan
 
-# ── Resolve space list ────────────────────────────────────────────
-Write-Section "Fetching saved objects"
+function Invoke-EpmReinstall {
+    param([string]$Name, [string]$Version, [string]$Reason)
+
+    Write-Log INFO "REINSTALL EPM [$Name@$Version] reason=$Reason"
+
+    if (-not $DryRun) {
+        try {
+            $body = @{ force = $true } | ConvertTo-Json -Compress
+            Invoke-RestMethod `
+                -Method      POST `
+                -Uri         "$KibanaUrl/api/fleet/epm/packages/$Name/$Version" `
+                -Headers     $BaseHeaders `
+                -Body        $body `
+                -ErrorAction Stop | Out-Null
+            Write-Log DEBUG "Reinstalled EPM [$Name@$Version]"
+        } catch {
+            $status = if ($_.Exception.Response) { $_.Exception.Response.StatusCode.value__ } else { "unknown" }
+            Write-Log ERROR "Reinstall failed [$Name@$Version] (HTTP $status): $_"
+        }
+    }
+}
+
+# ── Main ─────────────────────────────────────────────────────────────────────
+
+$spaceLabel = switch ($Space) { "" { "default" } "*" { "ALL" } default { $Space } }
+Write-Log INFO "Starting Kibana cleanup | url=$KibanaUrl space=$spaceLabel dryRun=$DryRun"
 
 $spaceIds = if ($Space -eq "*") {
-    Write-Log INFO "Enumerating all spaces..."
+    Write-Log INFO "Enumerating all spaces"
     Get-AllSpaceIds
 } else {
     @($Space)
 }
 
-Write-Log INFO "Spaces to process: $(($spaceIds | ForEach-Object { if ($_ -eq '') { 'default' } else { $_ } }) -join ', ')"
-
-# ── Fetch from all targeted spaces ───────────────────────────────
 $allObjects = [System.Collections.Generic.List[object]]::new()
 foreach ($sid in $spaceIds) {
     $exported = Get-ExportedObjects -SpaceId $sid
-    if ($exported.Count -gt 0) {
-        $allObjects.AddRange([object[]]$exported)
-    }
+    if ($exported.Count -gt 0) { $allObjects.AddRange([object[]]$exported) }
 }
 
 if ($allObjects.Count -eq 0) {
@@ -307,22 +275,20 @@ if ($allObjects.Count -eq 0) {
     exit 1
 }
 
-Write-Log INFO "Total objects across targeted space(s): $($allObjects.Count)"
+Write-Log INFO "Total objects fetched: $($allObjects.Count)"
 
-# Build reference-check index of all known IDs
 $existingIds = [System.Collections.Generic.HashSet[string]]::new()
 foreach ($obj in $allObjects) { [void]$existingIds.Add($obj.id) }
-Write-Log INFO "Reference index built — $($existingIds.Count) unique IDs"
+Write-Log DEBUG "Reference index built: $($existingIds.Count) unique IDs"
 
 $configObjects = @($allObjects | Where-Object { $_.type -eq "config" })
 $otherObjects  = @($allObjects | Where-Object { $_.type -ne "config" })
 
-# ── STEP 1: Duplicate removal ─────────────────────────────────────
-Write-Section "STEP 1 — Duplicate Objects (keep managed, remove unmanaged)"
+# ── Step 1: Duplicate removal ─────────────────────────────────────────────────
 
+Write-Log INFO "Step 1: Duplicate removal"
 $step1Removed = 0
 
-# Group by space+type to keep duplicate detection scoped per space
 $bySpaceAndType = $otherObjects | Group-Object { "$($_._spaceId)|$($_.type)" }
 
 foreach ($stGroup in $bySpaceAndType) {
@@ -332,76 +298,65 @@ foreach ($stGroup in $bySpaceAndType) {
 
     if ($type -notin $DuplicateCheckTypes) { continue }
 
-    $titleGroups = $stGroup.Group |
-        Group-Object { if ($_.attributes.title) { $_.attributes.title.Trim().ToLower() } else { "" } }
+    $titleGroups = $stGroup.Group | Group-Object {
+        if ($_.attributes.title) { $_.attributes.title.Trim().ToLower() } else { "" }
+    }
 
     foreach ($tg in $titleGroups) {
         if ($tg.Count -le 1) { continue }
 
-        $title     = $tg.Group[0].attributes.title
-
-        if (Test-Excluded $title) {
-            $script:TotalSkipped++
-            Write-Log SKIP "[$type][$sid] '$title' — matches exclusion list -> skipped"
-            continue
-        }
+        $title   = $tg.Group[0].attributes.title
         $managed   = @($tg.Group | Where-Object { $_.managed -eq $true })
         $unmanaged = @($tg.Group | Where-Object { $_.managed -ne $true })
 
-        if ($managed.Count -eq 0) {
+        if (Test-Excluded $title) {
             $script:TotalSkipped++
-            Write-Log SKIP "[$type][$sid] '$title' — $($tg.Count) copies, none managed -> protected (user-created)"
+            Write-Log DEBUG "Excluded [$type][$sid] '$title'"
             continue
         }
 
-        # Multiple managed copies only — keep the newest, delete the older ones
+        if ($managed.Count -eq 0) {
+            $script:TotalSkipped++
+            Write-Log DEBUG "Protected [$type][$sid] '$title' — $($tg.Count) copies, all user-created"
+            continue
+        }
+
         if ($unmanaged.Count -eq 0) {
-            $sortedManaged = @($managed | Sort-Object {
-                try { [datetime]$_.updated_at } catch { [datetime]::MinValue }
-            } -Descending)
-
-            $keepObj    = $sortedManaged[0]
-            $dropManaged = @($sortedManaged | Select-Object -Skip 1)
-
-            Write-Log INFO "[$type][$sid] '$title' — $($managed.Count) managed copies, keeping newest (updated: $($keepObj.updated_at))"
-
+            $sorted      = @($managed | Sort-Object { try { [datetime]$_.updated_at } catch { [datetime]::MinValue } } -Descending)
+            $dropManaged = @($sorted | Select-Object -Skip 1)
+            Write-Log INFO "[$type][$sid] '$title' — $($managed.Count) managed copies, removing older"
             foreach ($obj in $dropManaged) {
-                Remove-KibanaObject -Type $type -Id $obj.id -Label "'$title' (older managed, updated: $($obj.updated_at))" -SpaceId $sid
+                Remove-KibanaObject -Type $type -Id $obj.id -Label "'$title' (older managed)" -SpaceId $sid
                 $step1Removed++
             }
             continue
         }
 
-        Write-Log INFO "[$type][$sid] '$title' — $($managed.Count) managed + $($unmanaged.Count) unmanaged duplicate(s)"
-
+        Write-Log INFO "[$type][$sid] '$title' — removing $($unmanaged.Count) unmanaged duplicate(s)"
         foreach ($obj in $unmanaged) {
-            Remove-KibanaObject -Type $type -Id $obj.id -Label "'$title'" -SpaceId $sid
+            Remove-KibanaObject -Type $obj.type -Id $obj.id -Label "'$title'" -SpaceId $sid
             $step1Removed++
         }
     }
 }
 
-Write-Log OK "Step 1 complete — duplicates flagged for removal: $step1Removed"
+Write-Log INFO "Step 1 complete: $step1Removed duplicate(s) flagged"
 
-# ── STEP 2: Config pruning ────────────────────────────────────────
-Write-Section "STEP 2 — Config Objects (Advanced Settings) — keep newest $KeepConfigCount per space"
+# ── Step 2: Config pruning ────────────────────────────────────────────────────
 
+Write-Log INFO "Step 2: Config pruning (keep newest $KeepConfigCount per space)"
 $step2Removed = 0
-$configBySpace = $configObjects | Group-Object { $_._spaceId }
 
-foreach ($spaceGroup in $configBySpace) {
+foreach ($spaceGroup in ($configObjects | Group-Object { $_._spaceId })) {
     $sid     = $spaceGroup.Name
     $configs = @($spaceGroup.Group)
 
-    Write-Log INFO "Space '$sid': $($configs.Count) config object(s) found"
-
     if ($configs.Count -le $KeepConfigCount) {
-        Write-Log SKIP "  Only $($configs.Count) — at or below threshold of $KeepConfigCount, nothing to remove"
+        Write-Log DEBUG "Space '$sid': $($configs.Count) config object(s) — within threshold, nothing to remove"
         continue
     }
 
-    # Sort descending by semantic version in the object ID (e.g. "9.2.4")
-    $sorted = $configs | Sort-Object {
+    $sorted   = $configs | Sort-Object {
         $raw = $_.id -replace '[^0-9.]', ''
         try { [System.Version]$raw } catch { [System.Version]"0.0.0" }
     } -Descending
@@ -409,8 +364,7 @@ foreach ($spaceGroup in $configBySpace) {
     $toKeep   = @($sorted | Select-Object -First $KeepConfigCount)
     $toDelete = @($sorted | Select-Object -Skip  $KeepConfigCount)
 
-    Write-Log INFO   "  Keeping  : $(($toKeep   | ForEach-Object { $_.id }) -join ', ')"
-    Write-Log ACTION "  Removing : $(($toDelete | ForEach-Object { $_.id }) -join ', ')"
+    Write-Log INFO "Space '$sid': keeping $(($toKeep | ForEach-Object { $_.id }) -join ', '), removing $(($toDelete | ForEach-Object { $_.id }) -join ', ')"
 
     foreach ($cfg in $toDelete) {
         Remove-KibanaObject -Type "config" -Id $cfg.id -Label $cfg.id -SpaceId $sid
@@ -418,11 +372,11 @@ foreach ($spaceGroup in $configBySpace) {
     }
 }
 
-Write-Log OK "Step 2 complete — config objects flagged for removal: $step2Removed"
+Write-Log INFO "Step 2 complete: $step2Removed config object(s) flagged"
 
-# ── STEP 3: Dangling reference detection ──────────────────────────
-Write-Section "STEP 3 — Dangling Reference Detection"
+# ── Step 3: Dangling reference detection ──────────────────────────────────────
 
+Write-Log INFO "Step 3: Dangling reference detection"
 $step3Removed = 0
 
 foreach ($obj in $otherObjects) {
@@ -431,54 +385,138 @@ foreach ($obj in $otherObjects) {
     $brokenRefs = @($obj.references | Where-Object { -not $existingIds.Contains($_.id) })
     if ($brokenRefs.Count -eq 0) { continue }
 
-    $title       = if ($obj.attributes.title) { $obj.attributes.title } else { $obj.id }
-    $isManaged   = $obj.managed -eq $true
-    $isDashboard = $obj.type -eq "dashboard"
-    $sid         = $obj._spaceId
-    $brokenList  = ($brokenRefs | ForEach-Object { "$($_.type)/$($_.id)" }) -join ", "
+    $title      = if ($obj.attributes.title) { $obj.attributes.title } else { $obj.id }
+    $sid        = $obj._spaceId
+    $brokenList = ($brokenRefs | ForEach-Object { "$($_.type)/$($_.id)" }) -join ", "
 
-    if ($isManaged) {
-        Write-Log WARN "[$($obj.type)][$sid] '$title' managed + $($brokenRefs.Count) broken ref(s) -> skipped"
+    if ($obj.managed -eq $true) {
+        # Deliberately not deleting: Step 4 reinstall will regenerate these
+        Write-Log WARN "[$($obj.type)][$sid] '$title' managed with $($brokenRefs.Count) broken ref(s) — deferred to EPM reinstall (Step 4)"
         $script:TotalSkipped++
         continue
     }
 
-    if ($isDashboard -and -not $DeleteDanglingDashboards) {
-        Write-Log WARN "[dashboard][$sid] '$title' has $($brokenRefs.Count) broken ref(s) -> skipped (set DeleteDanglingDashboards=true to enable)"
+    if ($obj.type -eq "dashboard" -and -not $DeleteDanglingDashboards) {
+        Write-Log WARN "[dashboard][$sid] '$title' has $($brokenRefs.Count) broken ref(s) — skipped (set DeleteDanglingDashboards=true to enable)"
         $script:TotalSkipped++
         continue
     }
 
-    Write-Log ACTION "[$($obj.type)][$sid] '$title' — $($brokenRefs.Count) broken ref(s): $brokenList"
+    Write-Log INFO "[$($obj.type)][$sid] '$title' — $($brokenRefs.Count) broken ref(s): $brokenList"
     Remove-KibanaObject -Type $obj.type -Id $obj.id -Label "'$title' (dangling)" -SpaceId $sid
     $step3Removed++
 }
 
-Write-Log OK "Step 3 complete — dangling objects flagged for removal: $step3Removed"
+Write-Log INFO "Step 3 complete: $step3Removed dangling object(s) flagged"
 
-# ── SUMMARY ───────────────────────────────────────────────────────
-Write-Section "SUMMARY"
+# ── Step 4: EPM Integration Audit ────────────────────────────────────────────
+#
+#   4a — Orphaned managed objects:
+#        managed=true objects whose ID is not in any installed package's asset list.
+#        These were left behind when a package was uninstalled or replaced.
+#
+#   4b — Missing package assets:
+#        Installed packages with expected saved objects absent from existingIds.
+#        Resolved by a forced reinstall so Fleet regenerates the missing assets.
 
-$totalFlagged = $step1Removed + $step2Removed + $step3Removed
+Write-Log INFO "Step 4: EPM integration audit"
+$step4Removed     = 0
+$step4Reinstalled = 0
 
-Write-Host ""
-Write-Host ("  {0,-35} {1}" -f "Space(s) processed:",          $spaceLabel)          -ForegroundColor White
-Write-Host ("  {0,-35} {1}" -f "Total objects fetched:",        $allObjects.Count)    -ForegroundColor White
-Write-Host ""
-Write-Host ("  {0,-35} {1}" -f "Duplicate objects removed:",   $step1Removed)        -ForegroundColor White
-Write-Host ("  {0,-35} {1}" -f "Config objects removed:",      $step2Removed)        -ForegroundColor White
-Write-Host ("  {0,-35} {1}" -f "Dangling objects removed:",    $step3Removed)        -ForegroundColor White
-Write-Host ("  {0,-35} {1}" -f "Objects protected (skipped):", $script:TotalSkipped) -ForegroundColor DarkGray
-Write-Host ""
+$epmAssetMap, $epmPackages = Get-EpmPackageAssets
 
-if ($DryRun) {
-    Write-Host "  WARNING  DRY RUN — 0 objects actually deleted." -ForegroundColor Yellow
-    Write-Host "     Would have removed: $totalFlagged object(s)" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "  To apply, open the script and set:" -ForegroundColor Cyan
-    Write-Host '     $DryRun = $false' -ForegroundColor Cyan
-    Write-Host ""
+if ($null -eq $epmAssetMap) {
+    Write-Log WARN "EPM data unavailable — skipping Step 4"
 } else {
-    Write-Host "  Done. $totalFlagged object(s) deleted." -ForegroundColor Green
-    Write-Host ""
+    # Flat set of ALL asset IDs across all installed packages
+    $allEpmAssetIds = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($pkg in $epmPackages) {
+        foreach ($id in $pkg.AssetIds) { [void]$allEpmAssetIds.Add($id) }
+    }
+    Write-Log DEBUG "EPM: $($allEpmAssetIds.Count) total unique asset IDs across all packages"
+
+    # 4a: Orphaned managed objects
+    foreach ($obj in @($otherObjects | Where-Object { $_.managed -eq $true })) {
+        if ($allEpmAssetIds.Count -eq 0 -or $allEpmAssetIds.Contains($obj.id)) { continue }
+
+        $title = if ($obj.attributes.title) { $obj.attributes.title } else { $obj.id }
+        $sid   = $obj._spaceId
+
+        if (Test-Excluded $title) {
+            $script:TotalSkipped++
+            Write-Log DEBUG "Excluded orphaned managed [$($obj.type)][$sid] '$title'"
+            continue
+        }
+
+        Write-Log INFO "Orphaned managed [$($obj.type)][$sid] '$title' — not owned by any installed package"
+        Remove-KibanaObject -Type $obj.type -Id $obj.id -Label "'$title' (orphaned managed)" -SpaceId $sid
+        $step4Removed++
+    }
+
+    # 4b: Missing package assets -> reinstall
+    foreach ($pkg in $epmPackages) {
+        if ($pkg.AssetIds.Count -eq 0) {
+            Write-Log DEBUG "EPM [$($pkg.Key)]: no asset manifest available — skipping completeness check"
+            continue
+        }
+
+        $missingIds = @($pkg.AssetIds | Where-Object { -not $existingIds.Contains($_) })
+
+        if ($missingIds.Count -eq 0) {
+            Write-Log DEBUG "EPM [$($pkg.Key)]: all $($pkg.AssetIds.Count) asset(s) present"
+        } else {
+            $preview = ($missingIds | Select-Object -First 5) -join ", "
+            $suffix  = if ($missingIds.Count -gt 5) { " (and $($missingIds.Count - 5) more)" } else { "" }
+            Write-Log WARN "EPM [$($pkg.Key)]: $($missingIds.Count)/$($pkg.AssetIds.Count) asset(s) missing — $preview$suffix"
+            Invoke-EpmReinstall -Name $pkg.Name -Version $pkg.Version -Reason "$($missingIds.Count) missing asset(s)"
+            $step4Reinstalled++
+        }
+    }
 }
+
+Write-Log INFO "Step 4 complete: orphanedManaged=$step4Removed epmReinstalled=$step4Reinstalled"
+
+# ── Step 5: Orphaned tag cleanup ─────────────────────────────────────────────
+#
+#   Tag objects not referenced by any other saved object are useless and
+#   accumulate when tagged objects are deleted without cleanup.
+
+Write-Log INFO "Step 5: Orphaned tag cleanup (enabled=$DeleteOrphanedTags)"
+$step5Removed = 0
+
+if ($DeleteOrphanedTags) {
+    $referencedTagIds = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($obj in $allObjects) {
+        if (-not $obj.references) { continue }
+        foreach ($ref in $obj.references) {
+            if ($ref.type -eq "tag") { [void]$referencedTagIds.Add($ref.id) }
+        }
+    }
+
+    $tagObjects = @($allObjects | Where-Object { $_.type -eq "tag" })
+    Write-Log DEBUG "Tags: $($tagObjects.Count) total, $($referencedTagIds.Count) referenced"
+
+    foreach ($tag in $tagObjects) {
+        if ($referencedTagIds.Contains($tag.id)) { continue }
+
+        $tagName = if ($tag.attributes.name) { $tag.attributes.name } else { $tag.id }
+        $sid     = $tag._spaceId
+
+        if ($tag.managed -eq $true) {
+            Write-Log DEBUG "Skipping managed orphaned tag '$tagName' [$sid]"
+            $script:TotalSkipped++
+            continue
+        }
+
+        Write-Log INFO "Orphaned tag '$tagName' (id: $($tag.id), space: $sid)"
+        Remove-KibanaObject -Type "tag" -Id $tag.id -Label "'$tagName' (orphaned tag)" -SpaceId $sid
+        $step5Removed++
+    }
+}
+
+Write-Log INFO "Step 5 complete: $step5Removed orphaned tag(s) flagged"
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+
+$totalDeleted = $step1Removed + $step2Removed + $step3Removed + $step4Removed + $step5Removed
+Write-Log INFO "Summary | duplicates=$step1Removed configs=$step2Removed dangling=$step3Removed orphanedManaged=$step4Removed epmReinstalled=$step4Reinstalled orphanedTags=$step5Removed skipped=$($script:TotalSkipped) totalDeleted=$totalDeleted dryRun=$DryRun"
