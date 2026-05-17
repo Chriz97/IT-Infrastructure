@@ -1,13 +1,15 @@
 # ── Configuration ────────────────────────────────────────────────────────────
 
-$KibanaUrl   = "
+$KibanaUrl   = ""
 $Username    = ""
 $Password    = ""
 
 $DryRun                   = $true
 $KeepConfigCount          = 4       # keep newest N config objects per space
-$DeleteDanglingDashboards = $false  # also delete dashboards with broken refs
-$DeleteOrphanedTags       = $true   # delete tag objects not referenced by anything
+$DeleteDanglingDashboards = $false  # delete dashboards with broken refs (user objects — off by default)
+$DeleteUserDanglingObjects = $false # delete user-created viz/lens/map/search with broken refs (off by default)
+$DeleteOrphanedTags       = $false  # delete tag objects not referenced by anything (off by default)
+$DebugEpmRaw              = $false  # dump raw EPM detail JSON for one package (troubleshooting)
 
 $ExcludeTitles = @(
     "metrics-*"
@@ -176,7 +178,7 @@ function Get-EpmPackageAssets {
     try {
         $listResult = Invoke-RestMethod `
             -Method      GET `
-            -Uri         "$KibanaUrl/api/fleet/epm/packages?prerelease=false&experimental=true" `
+            -Uri         "$KibanaUrl/api/fleet/epm/packages?prerelease=false" `
             -Headers     $BaseHeaders `
             -ErrorAction Stop
     } catch {
@@ -202,13 +204,26 @@ function Get-EpmPackageAssets {
 
             $assetIds = [System.Collections.Generic.HashSet[string]]::new()
 
-            # Response schema varies slightly; savedObjects and assets both appear in practice
-            $assets = if ($detail.item.savedObjects) { $detail.item.savedObjects }
-                      elseif ($detail.item.assets)   { $detail.item.assets }
-                      else                            { @() }
+            # Dump raw response for the first package when troubleshooting
+            if ($DebugEpmRaw -and $pkgList.Count -eq 0) {
+                Write-Log DEBUG "EPM raw response for [$pkgKey]: $($detail | ConvertTo-Json -Depth 6 -Compress)"
+            }
 
-            foreach ($asset in $assets) {
-                if ($asset.id) { [void]$assetIds.Add($asset.id) }
+            # Kibana 9.x returns assets as path strings: "kibana/dashboard/some-id"
+            # Kibana 8.x returned assets as objects: { id: "...", type: "..." }
+            # savedObjects is an older field, also an array of objects with .id
+            $rawAssets = if ($detail.item.assets)          { $detail.item.assets }
+                         elseif ($detail.item.savedObjects) { $detail.item.savedObjects }
+                         else                               { @() }
+
+            foreach ($asset in $rawAssets) {
+                if ($asset -is [string]) {
+                    # Path format "kibana/dashboard/some-id" — take the last segment
+                    $segments = $asset -split '/'
+                    if ($segments.Count -ge 3) { [void]$assetIds.Add($segments[-1]) }
+                } elseif ($asset.id) {
+                    [void]$assetIds.Add($asset.id)
+                }
             }
 
             $assetMap[$pkgKey] = $assetIds
@@ -396,8 +411,15 @@ foreach ($obj in $otherObjects) {
         continue
     }
 
+    # User-created objects: protected by default — require explicit opt-in per type
     if ($obj.type -eq "dashboard" -and -not $DeleteDanglingDashboards) {
         Write-Log WARN "[dashboard][$sid] '$title' has $($brokenRefs.Count) broken ref(s) — skipped (set DeleteDanglingDashboards=true to enable)"
+        $script:TotalSkipped++
+        continue
+    }
+
+    if ($obj.type -ne "dashboard" -and -not $DeleteUserDanglingObjects) {
+        Write-Log WARN "[$($obj.type)][$sid] '$title' has $($brokenRefs.Count) broken ref(s) — skipped (set DeleteUserDanglingObjects=true to enable)"
         $script:TotalSkipped++
         continue
     }
@@ -485,6 +507,7 @@ Write-Log INFO "Step 5: Orphaned tag cleanup (enabled=$DeleteOrphanedTags)"
 $step5Removed = 0
 
 if ($DeleteOrphanedTags) {
+    Write-Log WARN "DeleteOrphanedTags=true — user-created unreferenced tags will be removed" 
     $referencedTagIds = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($obj in $allObjects) {
         if (-not $obj.references) { continue }
