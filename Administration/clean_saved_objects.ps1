@@ -20,7 +20,7 @@ $Space = ""
 
 # ── Internals ────────────────────────────────────────────────────────────────
 
-$ExportTypes         = @("dashboard","visualization","lens","map","search","index-pattern","config","tag")
+$ExportTypes         = @("dashboard","visualization","lens","map","search","index-pattern","config","tag","alert")
 $DuplicateCheckTypes = @("dashboard","visualization","lens","map","search","index-pattern")
 
 $EncodedCred = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${Username}:${Password}"))
@@ -209,20 +209,19 @@ function Get-EpmPackageAssets {
                 Write-Log DEBUG "EPM raw response for [$pkgKey]: $($detail | ConvertTo-Json -Depth 6 -Compress)"
             }
 
-            # Kibana 9.x returns assets as path strings: "kibana/dashboard/some-id"
-            # Kibana 8.x returned assets as objects: { id: "...", type: "..." }
-            # savedObjects is an older field, also an array of objects with .id
-            $rawAssets = if ($detail.item.assets)          { $detail.item.assets }
-                         elseif ($detail.item.savedObjects) { $detail.item.savedObjects }
-                         else                               { @() }
+            # item.installationInfo.installed_kibana is the authoritative list of
+            # what Fleet actually wrote into Kibana — array of { id, type } objects.
+            $rawAssets = if ($detail.item.installationInfo.installed_kibana) {
+                             $detail.item.installationInfo.installed_kibana
+                         } else { @() }
 
+            # Separate alert-type assets: they exist in installed_kibana but are not
+            # exportable via the saved objects API, so we cannot check them via existingIds.
+            $alertIds = [System.Collections.Generic.HashSet[string]]::new()
             foreach ($asset in $rawAssets) {
-                if ($asset -is [string]) {
-                    # Path format "kibana/dashboard/some-id" — take the last segment
-                    $segments = $asset -split '/'
-                    if ($segments.Count -ge 3) { [void]$assetIds.Add($segments[-1]) }
-                } elseif ($asset.id) {
+                if ($asset.id) {
                     [void]$assetIds.Add($asset.id)
+                    if ($asset.type -eq "alert") { [void]$alertIds.Add($asset.id) }
                 }
             }
 
@@ -233,6 +232,7 @@ function Get-EpmPackageAssets {
                 Version  = $pkg.version
                 Title    = $pkg.title
                 AssetIds = $assetIds
+                AlertIds = $alertIds
             })
 
             Write-Log DEBUG "EPM [$pkgKey]: $($assetIds.Count) saved object asset(s)"
@@ -464,6 +464,13 @@ if ($null -eq $epmAssetMap) {
         $title = if ($obj.attributes.title) { $obj.attributes.title } else { $obj.id }
         $sid   = $obj._spaceId
 
+        # Fleet stores package tags (fleet-pkg-*) outside of installed_kibana — never delete them
+        if ($obj.id -like "fleet-pkg-*") {
+            Write-Log DEBUG "Skipping Fleet package tag '$($obj.id)' [$sid] — managed outside EPM asset list"
+            $script:TotalSkipped++
+            continue
+        }
+
         if (Test-Excluded $title) {
             $script:TotalSkipped++
             Write-Log DEBUG "Excluded orphaned managed [$($obj.type)][$sid] '$title'"
@@ -482,7 +489,11 @@ if ($null -eq $epmAssetMap) {
             continue
         }
 
-        $missingIds = @($pkg.AssetIds | Where-Object { -not $existingIds.Contains($_) })
+        # Exclude alert-type assets from the completeness check — alerts are in
+        # installed_kibana but not exportable via the saved objects API, so they
+        # will never appear in existingIds regardless of whether they actually exist.
+        $exportableAssetIds = @($pkg.AssetIds | Where-Object { -not $pkg.AlertIds.Contains($_) })
+        $missingIds = @($exportableAssetIds | Where-Object { -not $existingIds.Contains($_) })
 
         if ($missingIds.Count -eq 0) {
             Write-Log DEBUG "EPM [$($pkg.Key)]: all $($pkg.AssetIds.Count) asset(s) present"
