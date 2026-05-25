@@ -1,5 +1,3 @@
-# ── Configuration ────────────────────────────────────────────────────────────
-
 $KibanaUrl   = ""
 $Username    = ""
 $Password    = ""
@@ -12,7 +10,7 @@ $DeleteOrphanedTags       = $false  # delete tag objects not referenced by anyth
 $DebugEpmRaw              = $false  # dump raw EPM detail JSON for one package (troubleshooting)
 
 $ExcludeTitles = @(
-    "metrics-*"
+    "metrics-*", "logs-*"
 )
 
 # ""  -> default space | "myid" -> specific space | "*" -> all spaces
@@ -171,14 +169,18 @@ function Remove-KibanaObject {
 
 # Returns a tuple: (assetMap hashtable, package array)
 # assetMap:  pkgKey -> HashSet[string] of expected saved object IDs
-# packages:  PSCustomObject[] with Name, Version, Title, AssetIds
+# packages:  PSCustomObject[] with Name, Version, Title, AssetIds, AlertIds
 function Get-EpmPackageAssets {
-    Write-Log INFO "Fetching installed EPM packages"
+    param([string]$SpaceId)
+
+    $apiBase = Get-ApiBase $SpaceId
+    $label   = if ($SpaceId -eq "" -or $SpaceId -eq "default") { "default" } else { $SpaceId }
+    Write-Log INFO "Fetching installed EPM packages for space '$label'"
 
     try {
         $listResult = Invoke-RestMethod `
             -Method      GET `
-            -Uri         "$KibanaUrl/api/fleet/epm/packages?prerelease=false" `
+            -Uri         "$apiBase/fleet/epm/packages?prerelease=false" `
             -Headers     $BaseHeaders `
             -ErrorAction Stop
     } catch {
@@ -198,7 +200,7 @@ function Get-EpmPackageAssets {
         try {
             $detail = Invoke-RestMethod `
                 -Method      GET `
-                -Uri         "$KibanaUrl/api/fleet/epm/packages/$($pkg.name)/$($pkg.version)" `
+                -Uri         "$apiBase/fleet/epm/packages/$($pkg.name)/$($pkg.version)" `
                 -Headers     $BaseHeaders `
                 -ErrorAction Stop
 
@@ -246,16 +248,17 @@ function Get-EpmPackageAssets {
 }
 
 function Invoke-EpmReinstall {
-    param([string]$Name, [string]$Version, [string]$Reason)
+    param([string]$Name, [string]$Version, [string]$Reason, [string]$SpaceId)
 
     Write-Log INFO "REINSTALL EPM [$Name@$Version] reason=$Reason"
 
     if (-not $DryRun) {
         try {
             $body = @{ force = $true } | ConvertTo-Json -Compress
+            $reinstallBase = Get-ApiBase $SpaceId
             Invoke-RestMethod `
                 -Method      POST `
-                -Uri         "$KibanaUrl/api/fleet/epm/packages/$Name/$Version" `
+                -Uri         "$reinstallBase/fleet/epm/packages/$Name/$Version" `
                 -Headers     $BaseHeaders `
                 -Body        $body `
                 -ErrorAction Stop | Out-Null
@@ -445,10 +448,16 @@ Write-Log INFO "Step 4: EPM integration audit"
 $step4Removed     = 0
 $step4Reinstalled = 0
 
-$epmAssetMap, $epmPackages = Get-EpmPackageAssets
+foreach ($currentSpaceId in $spaceIds) {
+
+$epmAssetMap, $epmPackages = Get-EpmPackageAssets -SpaceId $currentSpaceId
+
+# Scope otherObjects to the current space for Steps 4a/4b
+$currentSpaceLabel = if ($currentSpaceId -eq "") { "default" } else { $currentSpaceId }
+$spaceObjects = @($otherObjects | Where-Object { $_._spaceId -eq $currentSpaceLabel })
 
 if ($null -eq $epmAssetMap) {
-    Write-Log WARN "EPM data unavailable — skipping Step 4"
+    Write-Log WARN "EPM data unavailable for space '$currentSpaceId' — skipping"
 } else {
     # Flat set of ALL asset IDs across all installed packages
     $allEpmAssetIds = [System.Collections.Generic.HashSet[string]]::new()
@@ -458,7 +467,7 @@ if ($null -eq $epmAssetMap) {
     Write-Log DEBUG "EPM: $($allEpmAssetIds.Count) total unique asset IDs across all packages"
 
     # 4a: Orphaned managed objects
-    foreach ($obj in @($otherObjects | Where-Object { $_.managed -eq $true })) {
+    foreach ($obj in @($spaceObjects | Where-Object { $_.managed -eq $true })) {
         if ($allEpmAssetIds.Count -eq 0 -or $allEpmAssetIds.Contains($obj.id)) { continue }
 
         $title = if ($obj.attributes.title) { $obj.attributes.title } else { $obj.id }
@@ -501,11 +510,13 @@ if ($null -eq $epmAssetMap) {
             $preview = ($missingIds | Select-Object -First 5) -join ", "
             $suffix  = if ($missingIds.Count -gt 5) { " (and $($missingIds.Count - 5) more)" } else { "" }
             Write-Log WARN "EPM [$($pkg.Key)]: $($missingIds.Count)/$($pkg.AssetIds.Count) asset(s) missing — $preview$suffix"
-            Invoke-EpmReinstall -Name $pkg.Name -Version $pkg.Version -Reason "$($missingIds.Count) missing asset(s)"
+            Invoke-EpmReinstall -Name $pkg.Name -Version $pkg.Version -Reason "$($missingIds.Count) missing asset(s)" -SpaceId $currentSpaceId
             $step4Reinstalled++
         }
     }
 }
+
+} # end per-space EPM loop
 
 Write-Log INFO "Step 4 complete: orphanedManaged=$step4Removed epmReinstalled=$step4Reinstalled"
 
