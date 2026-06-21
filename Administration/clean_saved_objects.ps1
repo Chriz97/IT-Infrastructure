@@ -1,4 +1,4 @@
-#Requires -Version 7
+#Requires -Version 5.1
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
@@ -12,6 +12,7 @@ $DeleteDanglingDashboards = $false  # delete dashboards with broken refs (user o
 $DeleteUserDanglingObjects = $false # delete user-created viz/lens/map/search with broken refs (off by default)
 $DeleteOrphanedTags       = $false  # delete tag objects not referenced by anything (off by default)
 $DebugEpmRaw              = $false  # dump raw EPM detail JSON for one package (troubleshooting)
+$TraceManagedDashboards   = $false  # trace why each managed dashboard is kept/flagged in Step 4a
 
 $ExcludeTitles = @(
     "metrics-*"
@@ -503,6 +504,14 @@ if ($null -eq $epmAssetMap) {
     # 4a: Orphaned managed objects
     foreach ($obj in @($spaceObjects | Where-Object { $_.managed -eq $true })) {
         if (-not $orphanCheckSafe) { break }
+
+        if ($TraceManagedDashboards -and $obj.type -eq "dashboard") {
+            $inSet     = $allEpmAssetIds.Contains($obj.id)
+            $nsList    = if ($obj.namespaces) { $obj.namespaces -join ',' } else { '<none>' }
+            $ownerPkgs = @($epmPackages | Where-Object { $_.AssetIds.Contains($obj.id) } | ForEach-Object { $_.Key }) -join ', '
+            Write-Log DEBUG "TRACE dashboard id=$($obj.id) managed=$($obj.managed) namespaces=[$nsList] originId=$($obj.originId) inCurrentSpaceAssetSet=$inSet ownedBy=[$ownerPkgs]"
+        }
+
         if ($allEpmAssetIds.Count -eq 0 -or $allEpmAssetIds.Contains($obj.id)) { continue }
 
         $title = if ($obj.attributes.title) { $obj.attributes.title } else { $obj.id }
